@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+.venv/
+store-page.html
+store-captured.json
