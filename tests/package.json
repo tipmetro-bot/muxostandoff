@@ -1,0 +1,1 @@
+{"name":"muxostandoff-tests","private":true,"type":"module","scripts":{"smoke":"node smoke.mjs","features":"node features.mjs"},"dependencies":{"jsdom":"^30.1.3"}}
