@@ -138,8 +138,66 @@ verifyEndpoint: "https://your-proxy.example.com/standoff?id={id}",
 * ID не найден — HTTP 404 (сайт покажет «ID не найден в Standoff 2»);
 * остальные ошибки — тост «Проверка ника недоступна».
 
-Прокси нужен потому, что браузер не может ходить в закрытые API Standoff 2 напрямую: понадобится
-серверная функция с вашим ключом. Пока его нет — демо-режим, и это честно написано в интерфейсе.
+Прокси нужен потому, что браузер не может обратиться к официальному магазину Standoff 2
+(`store.standoff2.com`) напрямую. Это проверено запросами, а не предположение:
+
+| Запрос | Ответ |
+| --- | --- |
+| `GET /api/v2/productsConfig/{id}` с `Origin: https://tipmetro-bot.github.io` | `403 Invalid CORS request` |
+| `GET /api/player/{id}` с `Origin: https://example.com` | `403 Invalid CORS request` |
+| `GET /api/player/{id}` без `Origin` | `404 {"code":"40013"}` — API живой, но только для своих |
+| `POST /api/v2/accounts` с `{uid}` | `403` от Cloudflare, даже без `Origin` |
+
+Магазин отдаёт `vary: Origin` и отвергает **любой** чужой `Origin`. Браузер всегда подставляет свой
+`Origin` на межсайтовый запрос и не позволяет его убрать, поэтому со статической страницы на GitHub
+Pages прочитать ответ магазина невозможно — ни с какими настройками сайта. Остаётся только серверный
+прокси, которому вы доверяете.
+
+### Рецепт прокси (Cloudflare Worker)
+
+```js
+export default {
+  async fetch(request) {
+    const cors = {
+      'Access-Control-Allow-Origin': 'https://tipmetro-bot.github.io',
+      'Content-Type': 'application/json; charset=utf-8'
+    };
+    const id = new URL(request.url).searchParams.get('id') || '';
+    if (!/^\d{7,12}$/.test(id)) {
+      return new Response(JSON.stringify({ error: 'bad id' }), { status: 400, headers: cors });
+    }
+    // запрос уходит с сервера, без Origin — магазин такой принимает
+    const res = await fetch('https://store.standoff2.com/api/v2/accounts', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ uid: id })
+    });
+    if (!res.ok) {
+      return new Response(JSON.stringify({ error: 'upstream ' + res.status }), { status: 404, headers: cors });
+    }
+    const data = await res.json();
+    const nick = data && (data.nickname || data.nick || data.name);
+    if (!nick) {
+      return new Response(JSON.stringify({ error: 'no nick' }), { status: 404, headers: cors });
+    }
+    return new Response(JSON.stringify({ nick: String(nick) }), { status: 200, headers: cors });
+  }
+};
+```
+
+Дальше впишите адрес воркера в настройки и перезагрузите страницу:
+
+```js
+verifyEndpoint: "https://your-worker.workers.dev/?id={id}",
+```
+
+Честное предупреждение: `POST /api/v2/accounts` защищён Cloudflare и с серверных IP отдаёт `403`.
+С запросами из дата-центров (включая Cloudflare Workers и GitHub Actions) он, скорее всего, не
+заработает; на домашнем/резидентском IP шансы выше. Если прокси упрётся в `403`, реальная проверка
+потребует браузерной автоматизации (Playwright/Puppeteer в связке с вашим прокси) — это уже отдельный
+сервис, а не статический сайт. Пока прокси не подключён, сайт работает в демо-режиме, и в интерфейсе
+это прямо написано: «демо-проверка», плюс ссылка на официальный магазин, где свой ник видно вручную.
+
 
 ---
 
