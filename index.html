@@ -542,11 +542,91 @@
   .voice-audio { position: fixed; left: -9999px; top: 0; width: 1px; height: 1px; overflow: hidden; }
 
   .me-wins { margin-left: 4px; color: var(--muted); font-family: var(--mono); font-size: 11px; }
+  .me-nick-btn {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    text-align: left;
+  }
+  .me-nick-btn:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+  .me-nick-btn:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- плавающая панель комнаты ---------- */
+  .room-overlay {
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    z-index: 40;
+    width: 268px;
+    max-width: calc(100vw - 24px);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--panel);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .34);
+    font-size: 13px;
+  }
+  .room-overlay[hidden] { display: none; }
+  .room-overlay.is-pip {
+    position: static;
+    width: auto;
+    max-width: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .overlay-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .overlay-title { flex: 1 1 auto; min-width: 0; }
+  .overlay-name {
+    display: block;
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .overlay-sub { display: block; color: var(--muted); font-family: var(--mono); font-size: 10px; }
+  .overlay-body { display: grid; gap: 8px; padding: 9px 10px 10px; }
+  .room-overlay.is-collapsed .overlay-body { display: none; }
+  .overlay-list { display: grid; gap: 5px; max-height: 176px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+  .overlay-player { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .overlay-team {
+    flex: none;
+    width: 15px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+  .overlay-nick { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .overlay-state { margin-left: auto; color: var(--muted); font-size: 11px; white-space: nowrap; }
+  .overlay-empty { color: var(--muted); font-size: 12px; }
+  .overlay-foot { display: flex; flex-wrap: wrap; gap: 6px; }
+  .overlay-foot .btn { flex: 1 1 auto; }
+  .overlay-hint { color: var(--muted); font-size: 11px; }
 
   /* ---------- читы ---------- */
   #cheats { scroll-margin-top: 78px; }
   .section-title { font-size: 16px; font-weight: 650; }
-  .cheat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .cheat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+  .cheat-note {
+    display: grid;
+    gap: 3px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    background: var(--accent-soft);
+    font-size: 13px;
+  }
+  .cheat-note b { font-weight: 650; }
+  .cheat-note .hint { color: var(--text); opacity: .85; }
   .cheat { padding: 14px; border: 1px solid var(--border); border-radius: 6px; }
   .cheat-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
   .cheat-head h3 { font-size: 15px; font-weight: 650; }
@@ -638,6 +718,7 @@
 
   @media (max-width: 520px) {
     .header-link { display: none; }
+    .room-overlay:not(.is-pip) { left: 10px; right: 10px; bottom: 10px; width: auto; }
   }
 </style>
 </head>
@@ -669,8 +750,13 @@
       <div class="board-head">
         <div>
           <h2 class="section-title">Читы</h2>
-          <p class="hint">Файлы лежат в этом же репозитории. Качаешь на свой страх и риск.</p>
+          <p class="hint">Файлы лежат в репозитории и в релизе. Качаешь на свой страх и риск.</p>
         </div>
+      </div>
+      <div class="cheat-note">
+        <b>Перед запуском включи ADB в BlueStacks</b>
+        <span class="hint">Настройки → Дополнительно → «Android Debug Bridge» → включить. Без ADB чит не
+          подключится к эмулятору. После включения перезапусти BlueStacks.</span>
       </div>
       <div class="cheat-grid">
         <article class="cheat">
@@ -740,8 +826,43 @@
             </ul>
           </details>
         </article>
+
+        <article class="cheat">
+          <div class="cheat-head">
+            <h3>Neptunium</h3>
+            <span class="badge badge--game">официальный · бесплатный</span>
+          </div>
+          <p class="hint">Официальный чит, бесплатный. Но за бесплатную версию банят: играй на аккаунте,
+            который не жалко. Файлы лежат в
+            <a href="https://github.com/tipmetro-bot/muxostandoff/releases/tag/fgd" target="_blank" rel="noopener noreferrer">релизе</a>.</p>
+          <ul class="file-list">
+            <li class="file-row">
+              <div class="file-main">
+                <span class="file-name">neptunium.pc.loader.1.4-f1.1.zip</span>
+                <span class="file-meta">10,1 МБ · загрузчик чита (архив)</span>
+              </div>
+              <a class="btn btn-sm btn-primary" href="https://github.com/tipmetro-bot/muxostandoff/releases/download/fgd/neptunium.pc.loader.1.4-f1.1.zip">Скачать</a>
+            </li>
+            <li class="file-row">
+              <div class="file-main">
+                <span class="file-name">BlueStacksInstaller_5_22_130_1019_native_28cb0e6619cbfb3470f9070f66e209a0.2.exe</span>
+                <span class="file-meta">928 КБ · BlueStacks под Neptunium</span>
+              </div>
+              <a class="btn btn-sm" href="https://github.com/tipmetro-bot/muxostandoff/releases/download/fgd/BlueStacksInstaller_5_22_130_1019_native_28cb0e6619cbfb3470f9070f66e209a0.2.exe">Скачать</a>
+            </li>
+          </ul>
+          <details class="file-hashes">
+            <summary>SHA-256 файлов</summary>
+            <ul>
+              <li><b>neptunium.pc.loader.1.4-f1.1.zip</b>
+                <code>57b4da4361d59de88c0199538d742cfa1450f1491dff4a6bccee9e161ebf77a1</code></li>
+              <li><b>BlueStacksInstaller_5_22_130_1019_native_28cb0e6619cbfb3470f9070f66e209a0.2.exe</b>
+                <code>801895b346e936c1a7958135c285bab8d337e2d908e7d7b2fca4e3c39a786ed7</code></li>
+            </ul>
+          </details>
+        </article>
       </div>
-      <p class="hint cheats-note">Файлы загружены в репозиторий как есть и антивирусом не проверялись: читы и кряки
+      <p class="hint cheats-note">Файлы загружены как есть и антивирусом не проверялись: читы и кряки
         часто ловят детект. Скачивай только если понимаешь, что делаешь, и сверяй SHA-256 после загрузки.</p>
     </section>
 
@@ -767,6 +888,7 @@
   <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
   <div class="modal" id="modal" hidden></div>
   <div class="voice-audio" id="voiceAudio" aria-hidden="true"></div>
+  <div class="room-overlay" id="roomOverlay" hidden></div>
 
   <noscript>
     <p style="padding:20px">Для работы сайта нужен JavaScript.</p>
@@ -1553,6 +1675,7 @@ const CONFIG = {
     root.innerHTML = '<div class="dialog' + (opts && opts.wide ? ' dialog--wide' : '') + '" role="dialog" aria-modal="true">' + inner + '</div>';
     if (opts && opts.keepScroll) root.scrollTop = scroll;
     else root.scrollTop = 0;
+    renderOverlay();
     if (!(opts && opts.keepFocus)) {
       var dlg = root.querySelector('.dialog');
       var target = dlg && dlg.querySelector(
@@ -1567,7 +1690,6 @@ const CONFIG = {
 
   function closeModal() {
     var root = $('#modal');
-    if (Voice.active) stopVoice(true);
     if (Modal.kind === 'auth') pending = null;
     if (!Modal.kind) return;
     Modal.kind = null;
@@ -1577,6 +1699,7 @@ const CONFIG = {
     root.hidden = true;
     root.innerHTML = '';
     document.body.classList.remove('no-scroll');
+    renderOverlay();
     var focus = Modal.lastFocus;
     Modal.lastFocus = null;
     if (focus && focus.focus) {
@@ -1602,9 +1725,12 @@ const CONFIG = {
     var slot = $('#accountSlot');
     if (!slot) return;
     if (State.user) {
+      var verified = State.user.verifiedNick || State.user.nick;
       slot.innerHTML = '<span class="me" title="Standoff 2 ID ' + esc(State.user.id) + '">' +
         '<span class="avatar">' + esc(initials(State.user.nick)) + '</span>' +
-        '<span class="me-nick">' + esc(State.user.nick) + '</span>' +
+        '<button class="me-nick me-nick-btn" type="button" data-act="rename" title="Сменить ник' +
+        (verified && verified !== State.user.nick ? ' · проверенный: ' + esc(verified) : '') + '">' +
+        esc(State.user.nick) + '</button>' +
         (Number(State.user.wins) > 0
           ? '<span class="me-wins">' + Number(State.user.wins) + ' ' +
             plural(Number(State.user.wins), 'победа', 'победы', 'побед') + '</span>'
@@ -1784,6 +1910,7 @@ const CONFIG = {
     renderFilters();
     renderGrid();
     renderStatus();
+    renderOverlay();
   }
 
   /* ============================================================
@@ -1847,6 +1974,7 @@ const CONFIG = {
     return {
       id: String(session.id),
       nick: String(session.nick),
+      verifiedNick: String(session.verifiedNick || session.nick),
       wins: Number(session.wins) || 0
     };
   }
@@ -1856,6 +1984,7 @@ const CONFIG = {
       LS.set('session', {
         id: State.user.id,
         nick: State.user.nick,
+        verifiedNick: State.user.verifiedNick || State.user.nick,
         wins: Number(State.user.wins) || 0
       });
     } else {
@@ -1868,11 +1997,17 @@ const CONFIG = {
     var user = await getUser(State.user.id);
     if (!user) return;
     State.user.wins = Number(user.wins) || 0;
+    var dbNick = String(user.nick || '').trim();
+    if (dbNick) {
+      State.user.nick = dbNick;
+      State.user.verifiedNick = String(user.verifiedNick || dbNick);
+    }
     saveSession();
     renderHeader();
   }
 
   function logout() {
+    if (Voice.active) stopVoice(true);
     State.user = null;
     State.unlocked = {};
     saveSession();
@@ -2041,11 +2176,12 @@ const CONFIG = {
     var user = {
       id: Auth.regId,
       nick: Auth.regNick,
+      verifiedNick: Auth.regNick,
       pass: passHash(pass, Auth.regId),
       createdAt: Date.now()
     };
     await createUser(user);
-    State.user = { id: user.id, nick: user.nick, wins: 0 };
+    State.user = { id: user.id, nick: user.nick, verifiedNick: user.verifiedNick, wins: 0 };
     State.unlocked = {};
     saveSession();
     var next = pending;
@@ -2090,6 +2226,7 @@ const CONFIG = {
     State.user = {
       id: String(user.id || id),
       nick: String(user.nick || 'Игрок'),
+      verifiedNick: String(user.verifiedNick || user.nick || 'Игрок'),
       wins: Number(user.wins) || 0
     };
     State.unlocked = {};
@@ -2100,6 +2237,110 @@ const CONFIG = {
     render();
     toast('Вы вошли как ' + State.user.nick, 'ok');
     runPending(next);
+  }
+
+  function nickModalHTML() {
+    if (!State.user) return '';
+    var verified = State.user.verifiedNick || State.user.nick;
+    var custom = verified && verified !== State.user.nick;
+    return modalHead('Сменить ник', 'Виден в комнатах, слотах и чате') +
+      '<form id="nickForm" class="form" novalidate>' +
+      '<label class="field"><span>Ник</span>' +
+      '<input id="nickInput" maxlength="20" autocomplete="off" placeholder="2–20 символов" value="' +
+      esc(State.user.nick) + '"></label>' +
+      '<p class="hint">Проверенный ник: <b>' + esc(verified) + '</b> · ID ' + esc(State.user.id) + '. ' +
+      (custom
+        ? 'Новый ник показывается вместо него, проверенный остаётся в профиле.'
+        : 'Проверенный ник останется в профиле, даже если ты его сменишь.') +
+      '</p>' +
+      '<p class="form-error" id="nickErr" hidden></p>' +
+      '<div class="dialog-foot"><button type="button" class="btn" data-act="close-modal">Отмена</button>' +
+      '<button type="submit" class="btn btn-primary">Сохранить</button></div>' +
+      '</form>';
+  }
+
+  function openNickModal() {
+    if (!State.user) {
+      openAuth('login');
+      return;
+    }
+    openModal('nick', null, nickModalHTML());
+    var input = $('#nickInput');
+    if (input && input.focus) {
+      try {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  }
+
+  function cleanNick(value) {
+    return String(value || '')
+      .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 20);
+  }
+
+  async function applyNickToRooms(nick) {
+    var me = State.user ? State.user.id : '';
+    if (!me) return;
+    var ids = Object.keys(State.rooms);
+    for (var i = 0; i < ids.length; i += 1) {
+      var room = State.rooms[ids[i]];
+      if (!room || !room.players[me]) continue;
+      var players = Object.assign({}, room.players);
+      players[me] = Object.assign({}, players[me], { nick: nick });
+      var patch = { players: players };
+      if (room.ownerId === me) patch.ownerNick = nick;
+      try {
+        await patchRoom(room.id, patch);
+      } catch (e) {
+        continue;
+      }
+      State.rooms[room.id] = normalizeRoom(room.id, Object.assign({}, room, patch));
+    }
+  }
+
+  async function submitNickForm() {
+    if (!State.user) return;
+    var input = $('#nickInput');
+    if (!input) return;
+    var nick = cleanNick(input.value);
+    if (nick.length < 2) {
+      setError('#nickErr', 'Ник — от 2 до 20 символов');
+      fieldError('Ник — от 2 до 20 символов');
+      input.focus();
+      return;
+    }
+    if (nick === State.user.nick) {
+      toast('Ник не изменился');
+      closeModal();
+      return;
+    }
+    setError('#nickErr', '');
+    var user = await getUser(State.user.id);
+    if (!user) {
+      setError('#nickErr', 'Аккаунт не найден');
+      fieldError('Аккаунт не найден');
+      return;
+    }
+    var verified = String(user.verifiedNick || user.nick || State.user.verifiedNick || nick).slice(0, 24);
+    await patchUser(State.user.id, {
+      nick: nick,
+      verifiedNick: verified,
+      nickChangedAt: Date.now()
+    });
+    State.user.nick = nick;
+    State.user.verifiedNick = verified;
+    saveSession();
+    renderHeader();
+    await applyNickToRooms(nick);
+    render();
+    closeModal();
+    toast('Ник изменён: ' + nick, 'ok');
   }
 
   function requireLogin(next) {
@@ -2133,6 +2374,7 @@ const CONFIG = {
       return;
     }
     Modal.armed = null;
+    Overlay.roomId = id;
     if (Modal.key !== id) {
       ChatUI.draft = '';
       ChatUI.stick = true;
@@ -2157,6 +2399,7 @@ const CONFIG = {
   function syncOpenModal() {
     if (Modal.kind === 'room') {
       if (!State.rooms[Modal.key]) {
+        if (Voice.active && Voice.roomId === Modal.key) stopVoice(true);
         closeModal();
         toast('Комната удалена', 'error');
         return;
@@ -2730,6 +2973,7 @@ const CONFIG = {
   }
 
   async function deleteRoomFlow(id) {
+    if (Voice.active && Voice.roomId === id) stopVoice(true);
     var room = State.rooms[id];
     if (!room || !State.user) return;
     if (room.ownerId !== State.user.id) {
@@ -3097,6 +3341,7 @@ const CONFIG = {
     var list = $('#voicePeers');
     if (list) list.innerHTML = voicePeersHTML();
     if (Voice.active) setVoiceStatus(Voice.muted ? 'микрофон выкл.' : 'микрофон вкл.');
+    renderOverlay();
   }
 
   function attachVoiceAudio(peerId, stream) {
@@ -3481,6 +3726,168 @@ const CONFIG = {
   }
 
   /* ============================================================
+     Плавающая панель комнаты (как виджет в Discord)
+     ============================================================ */
+
+  var Overlay = { node: null, pip: null, collapsed: false, roomId: '' };
+
+  function pipSupported() {
+    return typeof window !== 'undefined' && 'documentPictureInPicture' in window;
+  }
+
+  function overlayRoom() {
+    if (!State.user) return null;
+    var me = State.user.id;
+    var preferred = Overlay.roomId ? State.rooms[Overlay.roomId] : null;
+    if (preferred && preferred.players[me]) return preferred;
+    var list = Object.keys(State.rooms)
+      .map(function (id) { return State.rooms[id]; })
+      .filter(function (room) { return room && room.players[me]; });
+    if (!list.length) return null;
+    list.sort(function (a, b) {
+      return (Number(a.players[me].at) || 0) - (Number(b.players[me].at) || 0);
+    });
+    return list[list.length - 1];
+  }
+
+  function overlayVoiceState(room, player) {
+    if (!Voice.active || Voice.roomId !== room.id) return '';
+    if (State.user && player.id === State.user.id) return Voice.muted ? 'микрофон выкл.' : 'в голосе';
+    var keys = Object.keys(Voice.remotes);
+    for (var i = 0; i < keys.length; i += 1) {
+      var remote = Voice.remotes[keys[i]];
+      if (!remote || remote.nick !== player.nick) continue;
+      var rec = Voice.peers[keys[i]];
+      return rec && rec.state === 'on' ? 'в голосе' : 'подключается';
+    }
+    return '';
+  }
+
+  function overlayPlayerHTML(room, player) {
+    var team = teamOf(room, player.id);
+    var voice = overlayVoiceState(room, player);
+    var state = voice || (player.ready ? 'готов' : 'не готов');
+    var isMe = State.user && player.id === State.user.id;
+    return '<li class="overlay-player">' +
+      '<span class="overlay-team">' + esc(team || '—') + '</span>' +
+      '<span class="avatar avatar--sm">' + esc(initials(player.nick)) + '</span>' +
+      '<span class="overlay-nick">' + esc(player.nick) + (isMe ? ' <span class="muted small">(ты)</span>' : '') + '</span>' +
+      '<span class="overlay-state">' + esc(state) + '</span></li>';
+  }
+
+  function overlayVoiceButton(room, member) {
+    if (!member || !voiceSupported()) return '';
+    if (Voice.active && Voice.roomId === room.id) {
+      return '<button class="btn btn-sm" type="button" data-act="voice-mute">' +
+        (Voice.muted ? 'Включить микрофон' : 'Без звука') + '</button>';
+    }
+    return '<button class="btn btn-sm" type="button" data-act="voice-start" data-room="' + esc(room.id) + '">Включить голос</button>';
+  }
+
+  function overlayHTML(room) {
+    var list = playerList(room);
+    var member = !!(State.user && room.players[State.user.id]);
+    var rows = list.length
+      ? list.map(function (player) { return overlayPlayerHTML(room, player); }).join('')
+      : '<li class="overlay-empty">Пока никого</li>';
+    var status = roomStatus(room);
+    var statusText = status === 'game' ? 'в игре' : (status === 'done' ? 'итог ' + room.result.winner : 'лобби');
+    var pip = pipSupported();
+    return '<div class="overlay-head">' +
+      '<div class="overlay-title">' +
+      '<span class="overlay-name">' + esc(room.name) + '</span>' +
+      '<span class="overlay-sub">' + esc(room.code) + ' · ' + list.length + '/' + room.cap + ' · ' + esc(statusText) + '</span>' +
+      '</div>' +
+      '<button class="icon-btn" type="button" data-act="overlay-toggle" aria-label="Свернуть панель" title="Свернуть">' +
+      (Overlay.collapsed ? '+' : '–') + '</button>' +
+      '</div>' +
+      '<div class="overlay-body">' +
+      '<ul class="overlay-list">' + rows + '</ul>' +
+      '<div class="overlay-foot">' +
+      '<button class="btn btn-sm btn-primary" type="button" data-act="overlay-open" data-room="' + esc(room.id) + '">Открыть комнату</button>' +
+      overlayVoiceButton(room, member) +
+      (pip
+        ? '<button class="btn btn-sm" type="button" data-act="overlay-pip">' + (Overlay.pip ? 'Вернуть на сайт' : 'Поверх окон') + '</button>'
+        : '') +
+      '</div>' +
+      (pip ? '' : '<span class="overlay-hint">Поверх других окон — в Chrome или Edge 116+</span>') +
+      '</div>';
+  }
+
+  function renderOverlay() {
+    var node = Overlay.node || $('#roomOverlay');
+    if (!node) return;
+    Overlay.node = node;
+    var room = overlayRoom();
+    var modalOpen = Modal.kind === 'room' && Modal.key && room && Modal.key === room.id;
+    if (!room || (modalOpen && !Overlay.pip)) {
+      node.hidden = true;
+      return;
+    }
+    node.hidden = false;
+    node.className = 'room-overlay' + (Overlay.collapsed ? ' is-collapsed' : '') + (Overlay.pip ? ' is-pip' : '');
+    node.innerHTML = overlayHTML(room);
+  }
+
+  function closeOverlayPip() {
+    if (!Overlay.pip) return;
+    try {
+      Overlay.pip.close();
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  async function toggleOverlayPip() {
+    if (Overlay.pip) {
+      closeOverlayPip();
+      return;
+    }
+    if (!pipSupported()) {
+      toast('Отдельное окно не поддерживается — открой сайт в Chrome или Edge 116+', 'error');
+      return;
+    }
+    var room = overlayRoom();
+    if (!room) {
+      toast('Сначала займи слот в комнате', 'error');
+      return;
+    }
+    try {
+      var pip = await window.documentPictureInPicture.requestWindow({ width: 300, height: 340 });
+      Overlay.pip = pip;
+      var style = document.querySelector('style');
+      if (style) pip.document.head.appendChild(style.cloneNode(true));
+      pip.document.title = 'muxostandoff · комната';
+      var theme = document.documentElement.getAttribute('data-theme') || 'dark';
+      pip.document.documentElement.setAttribute('data-theme', theme);
+      pip.document.body.style.margin = '0';
+      pip.document.body.style.background = 'var(--bg)';
+      var node = Overlay.node || $('#roomOverlay');
+      Overlay.node = node;
+      pip.document.body.appendChild(node);
+      pip.addEventListener('pagehide', function () {
+        Overlay.pip = null;
+        document.body.appendChild(node);
+        node.classList.remove('is-pip');
+        renderOverlay();
+      });
+      pip.document.addEventListener('click', function (event) {
+        var target = event.target;
+        if (!target || !target.closest) return;
+        var actEl = target.closest('[data-act]');
+        if (!actEl) return;
+        handleAct(actEl);
+      });
+      Overlay.collapsed = false;
+      renderOverlay();
+      toast('Панель в отдельном окне — остаётся поверх других окон', 'ok');
+    } catch (e) {
+      Overlay.pip = null;
+      toast('Не удалось открыть отдельное окно', 'error');
+    }
+  }
+
+  /* ============================================================
      Обработчики событий
      ============================================================ */
 
@@ -3496,6 +3903,19 @@ const CONFIG = {
         break;
       case 'logout':
         logout();
+        break;
+      case 'rename':
+        run(function () { return openNickModal(); });
+        break;
+      case 'overlay-open':
+        run(function () { return openRoom(roomId || (overlayRoom() && overlayRoom().id) || ''); });
+        break;
+      case 'overlay-toggle':
+        Overlay.collapsed = !Overlay.collapsed;
+        renderOverlay();
+        break;
+      case 'overlay-pip':
+        run(toggleOverlayPip);
         break;
       case 'create':
         startCreate();
@@ -3620,6 +4040,9 @@ const CONFIG = {
       } else if (form.id === 'chatForm') {
         event.preventDefault();
         run(function () { return submitChat(form); });
+      } else if (form.id === 'nickForm') {
+        event.preventDefault();
+        run(submitNickForm);
       }
     });
 
