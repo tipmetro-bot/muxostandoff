@@ -328,7 +328,8 @@
   }
 
   .card-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; }
-  .owner { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .owner { min-width: 0; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .owner b { color: var(--text); font-weight: 600; }
 
   .state {
     grid-column: 1 / -1;
@@ -466,6 +467,20 @@
     text-transform: uppercase;
     letter-spacing: .06em;
   }
+
+  .host-tag {
+    flex: none;
+    padding: 0 4px;
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+
+  .host-id { font-family: var(--mono); font-size: 12px; }
 
   /* ---------- toasts ---------- */
   .toasts {
@@ -1099,7 +1114,7 @@ const CONFIG = {
 
   function searchText(room) {
     var nicks = playerList(room).map(function (p) { return p.nick; }).join(' ');
-    return [room.name, room.code, room.map, room.region, room.ownerNick, nicks,
+    return [room.name, room.code, room.map, room.region, room.ownerNick, room.ownerId, nicks,
       styleLabel(room.style), room.style || ''].join(' ').toLowerCase();
   }
 
@@ -1272,7 +1287,8 @@ const CONFIG = {
       '<div class="card-count"><span><b>' + list.length + '</b> / ' + room.cap + '</span>' +
       '<span>' + (full ? 'мест нет' : 'свободно ' + (room.cap - list.length)) + '</span></div>' +
       '<div class="teams-mini">' + teamMini('A', teams.a) + teamMini('B', teams.b) + '</div>' +
-      '<div class="card-foot"><span class="owner">' + esc(room.ownerNick) + (room.passHash ? ' · пароль' : '') + '</span>' +
+      '<div class="card-foot"><span class="owner" title="Хост · ' + esc(room.ownerNick) + ' · ID ' + esc(room.ownerId) + '">' +
+        'хост: <b>' + esc(room.ownerNick) + '</b> · ID ' + esc(room.ownerId) + (room.passHash ? ' · пароль' : '') + '</span>' +
       '<button type="button" class="' + btnClass + '" data-act="open" data-room="' + esc(room.id) + '"' + btnAttrs + '>' + btnLabel + '</button>' +
       '</div></article>';
   }
@@ -1668,14 +1684,16 @@ const CONFIG = {
     return '<dt>' + esc(term) + '</dt><dd>' + htmlValue + '</dd>';
   }
 
-  function slotHTML(player, index) {
+  function slotHTML(player, index, isHost) {
     if (!player) {
       return '<li class="slot"><span class="avatar avatar--sm avatar--empty">–</span>' +
         '<span class="slot-nick muted">Свободно</span>' +
         '<span class="slot-idx">' + (index + 1) + '</span></li>';
     }
-    return '<li class="slot"><span class="avatar avatar--sm">' + esc(initials(player.nick)) + '</span>' +
+    return '<li class="slot"' + (isHost ? ' title="Хост лобби · Standoff 2 ID ' + esc(player.id) + '"' : '') + '>' +
+      '<span class="avatar avatar--sm">' + esc(initials(player.nick)) + '</span>' +
       '<span class="slot-nick">' + esc(player.nick) + '</span>' +
+      (isHost ? '<span class="host-tag">хост</span>' : '') +
       (player.ready ? '<span class="ready-tag">готов</span>' : '') +
       '<span class="slot-idx">' + (index + 1) + '</span></li>';
   }
@@ -1683,7 +1701,7 @@ const CONFIG = {
   function teamHTML(room, teamPlayers, label) {
     var size = teamSize(room);
     var rows = [];
-    for (var i = 0; i < size; i += 1) rows.push(slotHTML(teamPlayers[i], i));
+    for (var i = 0; i < size; i += 1) rows.push(slotHTML(teamPlayers[i], i, !!teamPlayers[i] && teamPlayers[i].id === room.ownerId));
     return '<div class="team"><h3 class="team-title"><span>Команда ' + label + '</span>' +
       '<span>' + teamPlayers.length + ' / ' + size + '</span></h3>' +
       '<ul class="slots">' + rows.join('') + '</ul></div>';
@@ -1711,7 +1729,7 @@ const CONFIG = {
       metaRow('Карта', room.map) +
       metaRow('Регион', room.region) +
       (room.ping != null ? metaRow('Пинг', room.ping + ' мс') : '') +
-      metaRow('Владелец', room.ownerNick) +
+      metaValueRow('Хост', esc(room.ownerNick) + ' <span class="host-id muted">ID ' + esc(room.ownerId) + '</span>') +
       metaRow('Создана', formatWhen(room.createdAt)) +
       '</dl>';
 
