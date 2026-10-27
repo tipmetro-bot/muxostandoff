@@ -556,6 +556,7 @@
   .file-list { display: grid; gap: 10px; margin: 12px 0 0; padding: 0; list-style: none; }
   .file-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
@@ -634,6 +635,10 @@
     .teams { grid-template-columns: 1fr; }
     .row { grid-template-columns: 1fr; }
   }
+
+  @media (max-width: 520px) {
+    .header-link { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -641,7 +646,7 @@
     <div class="wrap header-inner">
       <a class="brand" href="#top">muxostandoff <span class="brand-sub">ХВХ · Standoff 2</span></a>
       <div class="header-actions">
-        <a class="btn btn-sm" href="#cheats">Читы</a>
+        <a class="btn btn-sm header-link" href="#cheats">Читы</a>
         <button class="icon-btn" type="button" id="themeToggle" data-act="theme" title="Светлая тема" aria-label="Переключить тему">☀</button>
         <div id="accountSlot"></div>
       </div>
