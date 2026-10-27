@@ -302,6 +302,10 @@
   }
 
   .badge--rage { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .badge--game { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .badge--done { border-color: var(--text); color: var(--text); }
+  .badge--lobby { border-color: var(--border-strong); color: var(--muted); }
+  .badges { display: inline-flex; align-items: center; gap: 6px; }
   .badge--semi { border-color: var(--accent); color: var(--accent); }
   .badge--legit { border-color: var(--border-strong); color: var(--muted); }
 
@@ -482,6 +486,63 @@
 
   .host-id { font-family: var(--mono); font-size: 12px; }
 
+  /* ---------- статус, результат, чат, голос ---------- */
+  .banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    margin-top: 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    background: var(--accent-soft);
+    font-size: 13px;
+  }
+  .banner--muted { border-color: var(--border); background: transparent; color: var(--muted); }
+  .banner b { font-weight: 650; }
+
+  .panel { margin-top: 14px; padding: 12px; border: 1px solid var(--border); border-radius: 6px; }
+  .section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .section-head h3 {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+  .section-head .muted { font-size: 11px; }
+
+  .score { display: grid; gap: 4px; margin-bottom: 10px; font-size: 13px; }
+  .score-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .score-row b { font-family: var(--mono); font-weight: 600; }
+  .vote-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .vote-row .btn.is-voted { border-color: var(--accent); color: var(--accent); }
+  .outcome { margin-top: 8px; font-size: 13px; }
+  .outcome b { color: var(--accent); }
+
+  .chat-list { display: grid; gap: 8px; max-height: 190px; overflow-y: auto; margin: 0 0 10px; padding: 0; list-style: none; }
+  .chat-msg { font-size: 13px; line-height: 1.4; }
+  .chat-head { display: flex; align-items: baseline; gap: 6px; }
+  .chat-nick { color: var(--accent); font-weight: 600; }
+  .chat-time { color: var(--muted); font-family: var(--mono); font-size: 10px; }
+  .chat-text { overflow-wrap: anywhere; }
+  .chat-empty { color: var(--muted); font-size: 12px; }
+  .chat-del { margin-left: auto; padding: 0 4px; color: var(--muted); font-size: 12px; line-height: 1; }
+  .chat-del:hover { color: var(--text); }
+  .chat-form { display: flex; gap: 8px; }
+  .chat-form input { flex: 1 1 auto; min-width: 0; }
+
+  .voice-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+  .voice-peers { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+  .voice-peer { display: flex; align-items: center; gap: 8px; }
+  .dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--border-strong); }
+  .dot--on { background: var(--accent); }
+  .dot--wait { background: var(--muted); }
+  .voice-audio { position: fixed; left: -9999px; top: 0; width: 1px; height: 1px; overflow: hidden; }
+
+  .me-wins { margin-left: 4px; color: var(--muted); font-family: var(--mono); font-size: 11px; }
+
   /* ---------- toasts ---------- */
   .toasts {
     position: fixed;
@@ -533,6 +594,7 @@
     .dialog-foot { justify-content: stretch; }
     .dialog-foot .btn { flex: 1 1 auto; }
     .toasts { left: 12px; right: 12px; bottom: 12px; width: auto; }
+    .chat-list { max-height: 150px; }
   }
 
   @media (max-width: 640px) {
@@ -583,6 +645,7 @@
 
   <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
   <div class="modal" id="modal" hidden></div>
+  <div class="voice-audio" id="voiceAudio" aria-hidden="true"></div>
 
   <noscript>
     <p style="padding:20px">Для работы сайта нужен JavaScript.</p>
@@ -761,7 +824,9 @@ const CONFIG = {
     filter: 'all',
     style: 'all',
     query: '',
-    unlocked: {}
+    unlocked: {},
+    lastChat: {},
+    awarded: {}
   };
 
   var DB = { mode: 'local', base: '', es: null };
@@ -792,6 +857,59 @@ const CONFIG = {
     return out;
   }
 
+  function normalizeMessages(raw) {
+    var out = {};
+    if (!raw || typeof raw !== 'object') return out;
+    Object.keys(raw).forEach(function (key) {
+      var m = raw[key];
+      if (!m || typeof m !== 'object') return;
+      var text = String(m.text || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').slice(0, 200);
+      if (!text) return;
+      out[key] = {
+        key: String(key),
+        uid: String(m.uid || ''),
+        nick: String(m.nick || 'Игрок').slice(0, 24),
+        text: text,
+        at: Number(m.at) || 0
+      };
+    });
+    return out;
+  }
+
+  function normalizeResult(raw) {
+    var out = { votes: {}, winner: '', settledAt: 0 };
+    if (!raw || typeof raw !== 'object') return out;
+    if (raw.votes && typeof raw.votes === 'object') {
+      Object.keys(raw.votes).forEach(function (pid) {
+        if (raw.votes[pid] === 'A' || raw.votes[pid] === 'B') out.votes[pid] = raw.votes[pid];
+      });
+    }
+    if (raw.winner === 'A' || raw.winner === 'B') out.winner = raw.winner;
+    out.settledAt = Number(raw.settledAt) || 0;
+    return out;
+  }
+
+  function normalizeVoice(raw) {
+    var out = {};
+    if (!raw || typeof raw !== 'object') return out;
+    Object.keys(raw).forEach(function (key) {
+      var m = raw[key];
+      if (!m || typeof m !== 'object') return;
+      var kind = String(m.kind || '');
+      if (VOICE_KINDS.indexOf(kind) < 0) return;
+      out[key] = {
+        from: String(m.from || ''),
+        to: String(m.to || ''),
+        kind: kind,
+        nick: String(m.nick || '').slice(0, 24),
+        sdp: typeof m.sdp === 'string' ? m.sdp : '',
+        candidate: m.candidate && typeof m.candidate === 'object' ? m.candidate : null,
+        at: Number(m.at) || 0
+      };
+    });
+    return out;
+  }
+
   function normalizeRoom(id, raw) {
     if (!raw || typeof raw !== 'object') return null;
     var cap = Number(raw.cap);
@@ -815,7 +933,10 @@ const CONFIG = {
       ownerNick: String(raw.ownerNick || 'Игрок').slice(0, 24),
       code: String(raw.code || '').slice(0, 12),
       createdAt: Number(raw.createdAt) || 0,
-      players: normalizePlayers(raw.players)
+      players: normalizePlayers(raw.players),
+      messages: normalizeMessages(raw.messages),
+      result: normalizeResult(raw.result),
+      voice: normalizeVoice(raw.voice)
     };
   }
 
@@ -843,7 +964,10 @@ const CONFIG = {
       ownerNick: room.ownerNick,
       code: room.code,
       createdAt: room.createdAt,
-      players: room.players
+      players: room.players,
+      messages: room.messages,
+      result: room.result,
+      voice: room.voice
     };
   }
 
@@ -917,6 +1041,65 @@ const CONFIG = {
     }
   }
 
+  async function putMessageData(roomId, msgId, msg) {
+    if (cloud()) {
+      await api('PUT', 'rooms/' + encodeURIComponent(roomId) + '/messages/' + encodeURIComponent(msgId), msg);
+      return;
+    }
+    var rooms = localRooms();
+    if (!rooms[roomId]) return;
+    var messages = Object.assign({}, rooms[roomId].messages || {});
+    messages[msgId] = msg;
+    rooms[roomId].messages = messages;
+    LS.set('rooms', rooms);
+  }
+
+  async function deleteMessageData(roomId, msgId) {
+    if (cloud()) {
+      await api('DELETE', 'rooms/' + encodeURIComponent(roomId) + '/messages/' + encodeURIComponent(msgId));
+      return;
+    }
+    var rooms = localRooms();
+    if (!rooms[roomId] || !rooms[roomId].messages) return;
+    delete rooms[roomId].messages[msgId];
+    LS.set('rooms', rooms);
+  }
+
+  async function putVoiceData(roomId, key, entry) {
+    if (cloud()) {
+      await api('PUT', 'rooms/' + encodeURIComponent(roomId) + '/voice/' + encodeURIComponent(key), entry);
+      return;
+    }
+    var rooms = localRooms();
+    if (!rooms[roomId]) return;
+    var voice = Object.assign({}, rooms[roomId].voice || {});
+    voice[key] = entry;
+    rooms[roomId].voice = voice;
+    LS.set('rooms', rooms);
+  }
+
+  async function deleteVoiceData(roomId, key) {
+    if (cloud()) {
+      await api('DELETE', 'rooms/' + encodeURIComponent(roomId) + '/voice/' + encodeURIComponent(key));
+      return;
+    }
+    var rooms = localRooms();
+    if (!rooms[roomId] || !rooms[roomId].voice) return;
+    delete rooms[roomId].voice[key];
+    LS.set('rooms', rooms);
+  }
+
+  async function patchUser(id, patch) {
+    if (cloud()) {
+      await api('PATCH', 'users/' + encodeURIComponent(id), patch);
+      return;
+    }
+    var users = localUsers();
+    if (!users[id]) return;
+    users[id] = Object.assign({}, users[id], patch);
+    LS.set('users', users);
+  }
+
   async function deleteRoomData(id) {
     if (cloud()) {
       await api('DELETE', 'rooms/' + encodeURIComponent(id));
@@ -978,6 +1161,44 @@ const CONFIG = {
     }
   }
 
+  function deepSet(target, parts, value) {
+    var node = target;
+    for (var i = 0; i < parts.length - 1; i += 1) {
+      var key = parts[i];
+      if (!node[key] || typeof node[key] !== 'object') node[key] = {};
+      node = node[key];
+    }
+    var last = parts[parts.length - 1];
+    if (value === null || value === undefined) delete node[last];
+    else node[last] = value;
+  }
+
+  function deepPatch(target, parts, patch) {
+    var node = target;
+    for (var i = 0; i < parts.length; i += 1) {
+      var key = parts[i];
+      if (!node[key] || typeof node[key] !== 'object') node[key] = {};
+      node = node[key];
+    }
+    Object.keys(patch || {}).forEach(function (field) {
+      var value = patch[field];
+      if (value === null) delete node[field];
+      else if (value && typeof value === 'object' && !Array.isArray(value)) {
+        node[field] = Object.assign({}, node[field] || {}, value);
+      } else node[field] = value;
+    });
+  }
+
+  function updateRoomPath(id, parts, payload, mode) {
+    var room = State.rooms[id];
+    if (!room) return false;
+    var clone = JSON.parse(JSON.stringify(room));
+    if (mode === 'patch') deepPatch(clone, parts, payload);
+    else deepSet(clone, parts, payload);
+    State.rooms[id] = normalizeRoom(id, clone) || room;
+    return true;
+  }
+
   function onLivePut(event) {
     var payload;
     try { payload = JSON.parse(event.data); } catch (e) { return; }
@@ -993,6 +1214,12 @@ const CONFIG = {
         var room = normalizeRoom(id, payload.data);
         if (room) State.rooms[id] = room;
         else delete State.rooms[id];
+      } else {
+        updateRoomPath(id, parts.slice(1), payload.data === undefined ? null : payload.data, 'set');
+        if (parts[1] === 'voice') {
+          try { voiceTick(); } catch (e) { /* ignore */ }
+          return;
+        }
       }
     }
     scheduleRender();
@@ -1004,8 +1231,16 @@ const CONFIG = {
     if (!payload) return;
     var parts = String(payload.path || '/').split('/').filter(Boolean);
     var id = parts[0];
-    if (!id || parts.length !== 1 || !State.rooms[id]) return;
-    State.rooms[id] = normalizeRoom(id, Object.assign({}, State.rooms[id], payload.data || {}));
+    if (!id || !State.rooms[id]) return;
+    if (parts.length === 1) {
+      State.rooms[id] = normalizeRoom(id, Object.assign({}, State.rooms[id], payload.data || {}));
+    } else {
+      updateRoomPath(id, parts.slice(1), payload.data || {}, 'patch');
+      if (parts[1] === 'voice') {
+        try { voiceTick(); } catch (e) { /* ignore */ }
+        return;
+      }
+    }
     scheduleRender();
   }
 
@@ -1051,6 +1286,7 @@ const CONFIG = {
       State.rooms = normalizeRooms(localRooms());
       State.loading = false;
       render();
+      run(refreshWins);
       return;
     }
     DB.base = url;
@@ -1061,12 +1297,14 @@ const CONFIG = {
       State.loading = false;
       render();
       startLive();
+      run(refreshWins);
     } catch (e) {
       DB.mode = 'degraded';
       State.rooms = normalizeRooms(localRooms());
       State.loading = false;
       render();
       toast('Облако недоступно · локальный режим', 'error');
+      run(refreshWins);
     }
   }
 
@@ -1112,6 +1350,67 @@ const CONFIG = {
     }
   }
 
+  function roomStatus(room) {
+    if (room.result && room.result.settledAt) return 'done';
+    var list = playerList(room);
+    if (!room.result || !room.result.settledAt) {
+      if (list.length >= 2 && list.every(function (p) { return p.ready; })) return 'game';
+    }
+    return 'lobby';
+  }
+
+  function statusBadgeHTML(room) {
+    var status = roomStatus(room);
+    if (status === 'game') return '<span class="badge badge--game">в игре</span>';
+    if (status === 'done') return '<span class="badge badge--done">итог ' + esc(room.result.winner) + '</span>';
+    var list = playerList(room);
+    var ready = list.filter(function (p) { return p.ready; }).length;
+    if (ready > 0) return '<span class="badge badge--lobby">готовы ' + ready + '/' + room.cap + '</span>';
+    return '<span class="badge badge--lobby">лобби</span>';
+  }
+
+  function teamOf(room, playerId) {
+    var teams = splitTeams(room);
+    if (teams.a.some(function (p) { return p.id === playerId; })) return 'A';
+    if (teams.b.some(function (p) { return p.id === playerId; })) return 'B';
+    return '';
+  }
+
+  function votesCount(room) {
+    var votes = (room.result && room.result.votes) || {};
+    var counts = { A: 0, B: 0, total: 0 };
+    Object.keys(room.players).forEach(function (pid) {
+      if (votes[pid] === 'A') counts.A += 1;
+      else if (votes[pid] === 'B') counts.B += 1;
+      if (votes[pid]) counts.total += 1;
+    });
+    return counts;
+  }
+
+  function chatMessages(room) {
+    var messages = room.messages || {};
+    var list = Object.keys(messages).map(function (key) { return messages[key]; }).filter(Boolean);
+    list.sort(function (a, b) { return (a.at || 0) - (b.at || 0); });
+    return list.slice(-60);
+  }
+
+  function messageTime(at) {
+    if (!at) return '';
+    try {
+      return new Date(at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function plural(n, one, few, many) {
+    var mod10 = n % 10;
+    var mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return one;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+    return many;
+  }
+
   function searchText(room) {
     var nicks = playerList(room).map(function (p) { return p.nick; }).join(' ');
     return [room.name, room.code, room.map, room.region, room.ownerNick, room.ownerId, nicks,
@@ -1135,7 +1434,9 @@ const CONFIG = {
     else root.scrollTop = 0;
     if (!(opts && opts.keepFocus)) {
       var dlg = root.querySelector('.dialog');
-      var target = dlg && dlg.querySelector('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea');
+      var target = dlg && dlg.querySelector(
+        'input:not([type="hidden"]):not([disabled]):not([data-no-autofocus]), select:not([disabled]), textarea'
+      );
       if (!target) target = dlg && dlg.querySelector('[data-act="close-modal"]');
       if (target && target.focus) {
         try { target.focus(); } catch (e) { /* ignore */ }
@@ -1145,6 +1446,7 @@ const CONFIG = {
 
   function closeModal() {
     var root = $('#modal');
+    if (Voice.active) stopVoice(true);
     if (Modal.kind === 'auth') pending = null;
     if (!Modal.kind) return;
     Modal.kind = null;
@@ -1181,7 +1483,12 @@ const CONFIG = {
     if (State.user) {
       slot.innerHTML = '<span class="me" title="Standoff 2 ID ' + esc(State.user.id) + '">' +
         '<span class="avatar">' + esc(initials(State.user.nick)) + '</span>' +
-        '<span class="me-nick">' + esc(State.user.nick) + '</span></span>' +
+        '<span class="me-nick">' + esc(State.user.nick) + '</span>' +
+        (Number(State.user.wins) > 0
+          ? '<span class="me-wins">' + Number(State.user.wins) + ' ' +
+            plural(Number(State.user.wins), 'победа', 'победы', 'побед') + '</span>'
+          : '') +
+        '</span>' +
         '<button class="btn btn-sm" type="button" data-act="logout" style="margin-left:8px">Выйти</button>';
     } else {
       slot.innerHTML = '<button class="btn btn-sm" type="button" data-act="auth">Войти</button>';
@@ -1280,7 +1587,8 @@ const CONFIG = {
     }
 
     return '<article class="card" data-room-open="' + esc(room.id) + '">' +
-      '<div class="card-top">' + badgeHTML(room.style) + '<span class="code">' + esc(room.code) + '</span></div>' +
+      '<div class="card-top"><span class="badges">' + badgeHTML(room.style) + statusBadgeHTML(room) + '</span>' +
+      '<span class="code">' + esc(room.code) + '</span></div>' +
       '<h3 class="card-title">' + esc(room.name) + '</h3>' +
       '<div class="card-meta">' + meta.map(function (m) { return '<span>' + esc(m) + '</span>'; }).join('') + '</div>' +
       '<div class="fill"><span style="width:' + pct + '%"></span></div>' +
@@ -1326,7 +1634,31 @@ const CONFIG = {
     el.setAttribute('data-mode', DB.mode);
   }
 
+  function checkAwards() {
+    if (!State.user) return;
+    Object.keys(State.rooms).forEach(function (id) {
+      var room = State.rooms[id];
+      if (!room.result || !room.result.settledAt) return;
+      if (!room.players || !room.players[State.user.id]) return;
+      run(function () { return maybeAwardWin(room); });
+    });
+  }
+
+  function checkSettlements() {
+    if (!State.user) return;
+    Object.keys(State.rooms).forEach(function (id) {
+      var room = State.rooms[id];
+      if (!room.result || room.result.settledAt) return;
+      if (!room.players[State.user.id]) return;
+      var total = Object.keys(room.players).length;
+      if (total < 2 || Object.keys(room.result.votes).length < total) return;
+      run(function () { return trySettle(id); });
+    });
+  }
+
   function render() {
+    checkSettlements();
+    checkAwards();
     renderHeader();
     renderFilters();
     renderGrid();
@@ -1390,13 +1722,33 @@ const CONFIG = {
 
   function loadSession() {
     var session = LS.get('session', null);
-    if (session && session.id && session.nick) return { id: String(session.id), nick: String(session.nick) };
-    return null;
+    if (!session || !session.id || !session.nick) return null;
+    return {
+      id: String(session.id),
+      nick: String(session.nick),
+      wins: Number(session.wins) || 0
+    };
   }
 
   function saveSession() {
-    if (State.user) LS.set('session', { id: State.user.id, nick: State.user.nick });
-    else LS.remove('session');
+    if (State.user) {
+      LS.set('session', {
+        id: State.user.id,
+        nick: State.user.nick,
+        wins: Number(State.user.wins) || 0
+      });
+    } else {
+      LS.remove('session');
+    }
+  }
+
+  async function refreshWins() {
+    if (!State.user) return;
+    var user = await getUser(State.user.id);
+    if (!user) return;
+    State.user.wins = Number(user.wins) || 0;
+    saveSession();
+    renderHeader();
   }
 
   function logout() {
@@ -1572,7 +1924,7 @@ const CONFIG = {
       createdAt: Date.now()
     };
     await createUser(user);
-    State.user = { id: user.id, nick: user.nick };
+    State.user = { id: user.id, nick: user.nick, wins: 0 };
     State.unlocked = {};
     saveSession();
     var next = pending;
@@ -1614,7 +1966,11 @@ const CONFIG = {
       passEl.focus();
       return;
     }
-    State.user = { id: String(user.id || id), nick: String(user.nick || 'Игрок') };
+    State.user = {
+      id: String(user.id || id),
+      nick: String(user.nick || 'Игрок'),
+      wins: Number(user.wins) || 0
+    };
     State.unlocked = {};
     saveSession();
     var next = pending;
@@ -1656,7 +2012,12 @@ const CONFIG = {
       return;
     }
     Modal.armed = null;
+    if (Modal.key !== id) {
+      ChatUI.draft = '';
+      ChatUI.stick = true;
+    }
     openModal('room', id, roomModalHTML(room), { wide: true });
+    applyChatState(false);
   }
 
   function renderRoomModal(opts) {
@@ -1679,10 +2040,35 @@ const CONFIG = {
         toast('Комната удалена', 'error');
         return;
       }
+      var input = $('#chatInput');
+      var active = document.activeElement;
+      var typing = !!(input && active === input);
+      if (typing) ChatUI.draft = input.value;
+      var list = $('#chatList');
+      ChatUI.stick = !list || (list.scrollHeight - list.scrollTop - list.clientHeight < 32);
       renderRoomModal({ keepScroll: true, keepFocus: true });
+      applyChatState(typing);
     } else if (Modal.kind === 'pass' && !State.rooms[Modal.key]) {
       closeModal();
     }
+  }
+
+  function applyChatState(typing) {
+    var input = $('#chatInput');
+    if (input) {
+      if (ChatUI.draft && !input.value) input.value = ChatUI.draft;
+      if (typing && !input.disabled) {
+        try {
+          input.focus();
+          var end = input.value.length;
+          input.setSelectionRange(end, end);
+        } catch (e) {
+          /* ignore */
+        }
+      }
+    }
+    var list = $('#chatList');
+    if (list && ChatUI.stick) list.scrollTop = list.scrollHeight;
   }
 
   function metaRow(term, value) {
@@ -1714,6 +2100,160 @@ const CONFIG = {
     return '<div class="team"><h3 class="team-title"><span>Команда ' + label + '</span>' +
       '<span>' + teamPlayers.length + ' / ' + size + '</span></h3>' +
       '<ul class="slots">' + rows.join('') + '</ul></div>';
+  }
+
+  function statusBannerHTML(room) {
+    var status = roomStatus(room);
+    if (status === 'game') {
+      return '<div class="banner"><b>Все готовы — команда в игре</b>' +
+        '<span class="muted">после матча отметьте победителя в блоке «Результат»</span></div>';
+    }
+    if (status === 'done') {
+      var winner = (room.result && room.result.winner) || '';
+      var mine = State.user && room.players ? room.players[State.user.id] : null;
+      var myTeam = mine ? teamOf(room, State.user.id) : '';
+      return '<div class="banner"><b>Матч завершён · победа команды ' + esc(winner) + '</b>' +
+        (mine ? '<span class="muted">' + (myTeam === winner ? 'ваша победа засчитана в профиль' : 'в этот раз не вышло') + '</span>' : '') +
+        '</div>';
+    }
+    var list = playerList(room);
+    var ready = list.filter(function (p) { return p.ready; }).length;
+    return '<div class="banner banner--muted"><span>Готовы ' + ready + ' из ' + room.cap + '</span>' +
+      '<span class="muted">' + (list.length < room.cap
+        ? 'свободно слотов: ' + (room.cap - list.length)
+        : 'когда все нажмут «Готово», команда уйдёт в игру') + '</span></div>';
+  }
+
+  function resultHTML(room) {
+    var me = State.user;
+    var result = normalizeResult(room.result);
+    var member = me ? room.players[me.id] : null;
+    var status = roomStatus(room);
+    var settled = !!result.settledAt;
+    var counts = votesCount(room);
+    var myVote = member ? result.votes[me.id] || '' : '';
+    var canVote = !!(member && status === 'game' && !settled);
+    var headStatus = settled ? 'подтверждено' : (status === 'game' ? 'ждём голоса' : 'ждём готовности');
+
+    var html = '<section class="panel"><div class="section-head"><h3>Результат</h3>' +
+      '<span class="badge ' + (settled ? 'badge--done' : 'badge--lobby') + '">' + esc(headStatus) + '</span></div>';
+
+    html += '<div class="score">' +
+      '<div class="score-row"><span>Голоса за команду A</span><b>' + counts.A + '</b></div>' +
+      '<div class="score-row"><span>Голоса за команду B</span><b>' + counts.B + '</b></div>' +
+      '<div class="score-row"><span>Проголосовали</span><b>' + counts.total + ' / ' + room.cap + '</b></div>' +
+      '</div>';
+
+    if (settled) {
+      html += '<div class="outcome">Победа команды <b>' + esc(result.winner) + '</b> подтверждена' +
+        (result.settledAt ? ' · ' + esc(formatWhen(result.settledAt)) : '') + '.</div>';
+      if (member) {
+        var myTeam = teamOf(room, me.id);
+        if (myTeam === result.winner) {
+          html += '<div class="outcome">Вы выиграли — победа засчитана в профиль.</div>';
+        } else if (myTeam) {
+          html += '<div class="outcome muted">Вы проиграли этот матч.</div>';
+        }
+      }
+      if (me && room.ownerId === me.id) {
+        html += '<div class="vote-row" style="margin-top:10px">' +
+          '<button type="button" class="btn btn-sm" data-act="new-match" data-room="' + esc(room.id) + '">Реванш</button>' +
+          '</div>';
+      }
+    } else {
+      html += '<div class="vote-row">' +
+        '<button type="button" class="btn btn-sm' + (myVote === 'A' ? ' is-voted' : '') +
+        '" data-act="vote" data-side="A" data-room="' + esc(room.id) + '"' + (canVote ? '' : ' disabled') + '>Победила A</button>' +
+        '<button type="button" class="btn btn-sm' + (myVote === 'B' ? ' is-voted' : '') +
+        '" data-act="vote" data-side="B" data-room="' + esc(room.id) + '"' + (canVote ? '' : ' disabled') + '>Победила B</button>' +
+        '</div>';
+      if (!member) {
+        html += '<p class="hint" style="margin-top:8px">Голосуют только игроки комнаты.</p>';
+      } else if (status !== 'game') {
+        html += '<p class="hint" style="margin-top:8px">Голосование откроется, когда в комнате минимум два игрока и все нажали «Готово».</p>';
+      } else if (myVote) {
+        html += '<p class="hint" style="margin-top:8px">Ваш голос: команда ' + esc(myVote) +
+          '. Можно поменять, пока не проголосовали все.</p>';
+      } else {
+        html += '<p class="hint" style="margin-top:8px">Отметьте, кто выиграл. Когда проголосуют все и мнения совпадут, результат зафиксируется.</p>';
+      }
+    }
+
+    return html + '</section>';
+  }
+
+  function chatListHTML(room) {
+    var list = chatMessages(room);
+    if (!list.length) return '<li class="chat-empty">Пока тихо. Сообщения видят все в комнате.</li>';
+    var myId = State.user ? State.user.id : '';
+    return list.map(function (m) {
+      var mine = myId && (m.uid === myId || (!m.uid && m.nick === (State.user ? State.user.nick : '')));
+      return '<li class="chat-msg">' +
+        '<div class="chat-head"><span class="chat-nick">' + esc(m.nick) + '</span>' +
+        '<span class="chat-time">' + esc(messageTime(m.at)) + '</span>' +
+        (mine ? '<button class="icon-btn chat-del" type="button" data-act="chat-del" data-room="' +
+          esc(room.id) + '" data-key="' + esc(m.key) + '" title="Удалить сообщение" aria-label="Удалить сообщение">✕</button>' : '') +
+        '</div>' +
+        '<div class="chat-text">' + esc(m.text) + '</div></li>';
+    }).join('');
+  }
+
+  function chatHTML(room) {
+    var member = !!(State.user && room.players[State.user.id]);
+    var count = Object.keys(room.messages || {}).length;
+    return '<section class="panel"><div class="section-head"><h3>Чат</h3>' +
+      '<span class="muted">' + count + '</span></div>' +
+      '<ul class="chat-list" id="chatList">' + chatListHTML(room) + '</ul>' +
+      '<form class="chat-form" id="chatForm" data-room="' + esc(room.id) + '" novalidate>' +
+      '<input id="chatInput" maxlength="200" autocomplete="off" data-no-autofocus placeholder="' +
+      (member ? 'Сообщение в комнату' : 'Займи слот, чтобы писать в чат') + '"' + (member ? '' : ' disabled') + '>' +
+      '<button class="btn btn-sm btn-primary" type="submit"' + (member ? '' : ' disabled') + '>Отправить</button>' +
+      '</form></section>';
+  }
+
+  function voicePeersHTML() {
+    var peers = voicePeerList();
+    if (!peers.length) return '<li class="chat-empty">Пока никого. Голос включат другие — появятся здесь.</li>';
+    return peers.map(function (peer) {
+      var dot = peer.state === 'on' ? 'dot dot--on' : (peer.state === 'fail' ? 'dot' : 'dot dot--wait');
+      var label = peer.state === 'on' ? 'на связи' : (peer.state === 'fail' ? 'не удалось' : 'соединение…');
+      return '<li class="voice-peer"><span class="' + dot + '"></span>' +
+        '<span class="slot-nick">' + esc(peer.nick) + '</span>' +
+        '<span class="muted small">' + esc(label) + '</span></li>';
+    }).join('');
+  }
+
+  function voiceHTML(room) {
+    var member = !!(State.user && room.players[State.user.id]);
+    var active = Voice.active && Voice.roomId === room.id;
+
+    if (!voiceSupported()) {
+      return '<section class="panel"><div class="section-head"><h3>Голосовой чат</h3>' +
+        '<span class="muted" id="voiceStatus">недоступен</span></div>' +
+        '<p class="hint">Браузер не поддерживает голосовой чат: нет WebRTC или доступа к микрофону.</p></section>';
+    }
+
+    var head = '<section class="panel"><div class="section-head"><h3>Голосовой чат</h3>' +
+      '<span class="muted" id="voiceStatus">' +
+      (active ? (Voice.muted ? 'микрофон выкл.' : 'микрофон вкл.') : 'выкл') + '</span></div>';
+
+    if (!member) {
+      return head + '<p class="hint">Голос доступен участникам комнаты.</p></section>';
+    }
+
+    return head +
+      '<div class="voice-row">' +
+      (active
+        ? '<button type="button" class="btn btn-sm" data-act="voice-mute">' +
+          (Voice.muted ? 'Включить микрофон' : 'Без звука') + '</button>' +
+          '<button type="button" class="btn btn-sm btn-danger" data-act="voice-stop">Выключить голос</button>'
+        : '<button type="button" class="btn btn-sm btn-primary" data-act="voice-start">Включить микрофон</button>') +
+      '</div>' +
+      '<ul class="voice-peers" id="voicePeers">' + voicePeersHTML() + '</ul>' +
+      '<p class="hint" style="margin-top:8px">' + (active
+        ? 'Звук идёт напрямую между игроками, через базу передаются только сигналы соединения.'
+        : 'Браузер спросит разрешение на микрофон. Без разрешения голос не включится.') + '</p>' +
+      '</section>';
   }
 
   function roomModalHTML(room) {
@@ -1770,7 +2310,8 @@ const CONFIG = {
       actions.push('<button type="button" class="btn btn-primary" data-act="join" data-room="' + esc(room.id) + '">Занять слот</button>');
     }
 
-    return head + codeRow + meta + fill + teamsHTML +
+    return head + codeRow + meta + fill + statusBannerHTML(room) + teamsHTML +
+      resultHTML(room) + chatHTML(room) + voiceHTML(room) +
       '<div class="dialog-foot">' + (hint ? '<span class="hint" style="margin-right:auto">' + esc(hint) + '</span>' : '') + actions.join('') + '</div>';
   }
 
@@ -1857,9 +2398,17 @@ const CONFIG = {
       toast('Ты не в этой комнате', 'error');
       return;
     }
+    if (Voice.active && Voice.roomId === id) stopVoice(true);
     var players = Object.assign({}, room.players);
+    var votes = Object.assign({}, (room.result || {}).votes || {});
+    delete votes[State.user.id];
+    var result = {
+      votes: votes,
+      winner: (room.result || {}).winner || '',
+      settledAt: (room.result || {}).settledAt || 0
+    };
     delete players[State.user.id];
-    await patchRoom(id, { players: players });
+    await patchRoom(id, { players: players, result: result });
     State.rooms[id] = normalizeRoom(id, Object.assign({}, room, { players: players }));
     render();
     syncOpenModal();
@@ -1879,6 +2428,183 @@ const CONFIG = {
     await patchRoom(id, { players: players });
     State.rooms[id] = normalizeRoom(id, Object.assign({}, room, { players: players }));
     render();
+    syncOpenModal();
+  }
+
+  var ChatUI = { draft: '', stick: true };
+
+  function roomPatch(room, patch) {
+    return normalizeRoom(room.id, Object.assign({}, room, patch));
+  }
+
+  async function castVote(roomId, side) {
+    var room = State.rooms[roomId];
+    if (!room || !State.user) return;
+    if (side !== 'A' && side !== 'B') return;
+    if (!room.players[State.user.id]) {
+      toast('Голосуют только игроки комнаты', 'error');
+      return;
+    }
+    if (roomStatus(room) !== 'game') {
+      toast(room.result && room.result.settledAt ? 'Результат уже зафиксирован' : 'Сначала все игроки должны нажать «Готово»', 'error');
+      return;
+    }
+    if (room.result && room.result.settledAt) {
+      toast('Результат уже зафиксирован', 'error');
+      return;
+    }
+    var votes = Object.assign({}, (room.result || {}).votes || {});
+    votes[State.user.id] = side;
+    var result = { votes: votes, winner: '', settledAt: 0 };
+    await patchRoom(roomId, { result: result });
+    State.rooms[roomId] = roomPatch(room, { result: result });
+    render();
+    syncOpenModal();
+    await trySettle(roomId);
+  }
+
+  async function trySettle(roomId) {
+    var room = State.rooms[roomId];
+    if (!room || (room.result && room.result.settledAt)) return;
+    var players = playerList(room);
+    if (players.length < room.cap) return;
+    var votes = (room.result || {}).votes || {};
+    var winner = '';
+    for (var i = 0; i < players.length; i += 1) {
+      var vote = votes[players[i].id];
+      if (!vote) return;
+      if (!winner) winner = vote;
+      else if (winner !== vote) return;
+    }
+    if (!winner) return;
+    var settledAt = Date.now();
+    var result = { votes: votes, winner: winner, settledAt: settledAt };
+    await patchRoom(roomId, { result: result });
+    if (State.rooms[roomId]) {
+      State.rooms[roomId] = roomPatch(State.rooms[roomId], { result: result });
+    }
+    render();
+    syncOpenModal();
+    toast('Результат подтверждён: победа команды ' + winner, 'ok');
+  }
+
+  async function maybeAwardWin(room) {
+    if (!room || !room.result || !room.result.settledAt || !room.result.winner || !State.user) return;
+    var me = State.user.id;
+    if (!room.players[me]) return;
+    var myTeam = teamOf(room, me);
+    if (!myTeam || myTeam !== room.result.winner) return;
+
+    var guard = room.id + ':' + room.result.settledAt;
+    if (State.awarded[guard]) return;
+    State.awarded[guard] = true;
+
+    try {
+      var user = await getUser(me);
+      if (!user) return;
+      var winRooms = (user.winRooms && typeof user.winRooms === 'object') ? user.winRooms : {};
+      if (Number(winRooms[room.id]) === room.result.settledAt) return;
+      var wins = Number(user.wins) || 0;
+      winRooms[room.id] = room.result.settledAt;
+      await patchUser(me, { wins: wins + 1, winRooms: winRooms });
+      State.user.wins = wins + 1;
+      saveSession();
+      renderHeader();
+      toast('Победа засчитана · всего ' + (wins + 1) + ' ' + plural(wins + 1, 'победа', 'победы', 'побед'), 'ok');
+    } catch (e) {
+      State.awarded[guard] = false;
+    }
+  }
+
+  async function startNewMatch(roomId) {
+    var room = State.rooms[roomId];
+    if (!room || !State.user) return;
+    if (room.ownerId !== State.user.id) {
+      toast('Новый матч запускает хост', 'error');
+      return;
+    }
+    var players = {};
+    Object.keys(room.players).forEach(function (pid) {
+      players[pid] = Object.assign({}, room.players[pid], { ready: false });
+    });
+    var result = { votes: {}, winner: '', settledAt: 0 };
+    await patchRoom(roomId, { players: players, result: result });
+    State.rooms[roomId] = roomPatch(room, { players: normalizePlayers(players), result: result });
+    render();
+    syncOpenModal();
+    toast('Реванш: готовность и результат сброшены', 'ok');
+  }
+
+  async function sendChat(roomId, text) {
+    var room = State.rooms[roomId];
+    if (!room) return;
+    if (!State.user) {
+      toast('Сначала войди', 'error');
+      return;
+    }
+    if (!room.players[State.user.id]) {
+      toast('Займи слот, чтобы писать в чат', 'error');
+      return;
+    }
+    var clean = String(text || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, 200);
+    if (!clean) return;
+    var now = Date.now();
+    if (now - (State.lastChat[roomId] || 0) < 1000) {
+      toast('Не так быстро');
+      return;
+    }
+    State.lastChat[roomId] = now;
+
+    var msgId = 'm' + now.toString(36) + Math.random().toString(36).slice(2, 6);
+    var msg = { id: msgId, uid: State.user.id, nick: State.user.nick, text: clean, at: now };
+    await putMessageData(roomId, msgId, msg);
+    var messages = Object.assign({}, room.messages || {});
+    messages[msgId] = msg;
+    State.rooms[roomId] = roomPatch(room, { messages: messages });
+    syncOpenModal();
+    await pruneChat(roomId);
+  }
+
+  async function submitChat(form) {
+    var input = $('#chatInput');
+    if (!input) return;
+    var roomId = form.getAttribute('data-room') || Modal.key || '';
+    var text = input.value;
+    input.value = '';
+    ChatUI.draft = '';
+    await sendChat(roomId, text);
+  }
+
+  async function pruneChat(roomId) {
+    var room = State.rooms[roomId];
+    if (!room) return;
+    var all = Object.keys(room.messages || {}).map(function (key) { return room.messages[key]; });
+    all.sort(function (a, b) { return (a.at || 0) - (b.at || 0); });
+    if (all.length <= 80) return;
+    var remove = all.slice(0, all.length - 80);
+    for (var i = 0; i < remove.length; i += 1) {
+      try {
+        await deleteMessageData(roomId, remove[i].key);
+      } catch (e) {
+        /* чистим по возможности */
+      }
+    }
+  }
+
+  async function deleteChatMessage(roomId, key) {
+    var room = State.rooms[roomId];
+    if (!room || !State.user || !key) return;
+    var msg = (room.messages || {})[key];
+    if (!msg) return;
+    var mine = msg.uid ? msg.uid === State.user.id : msg.nick === State.user.nick;
+    if (!mine) {
+      toast('Можно удалять только свои сообщения', 'error');
+      return;
+    }
+    await deleteMessageData(roomId, key);
+    var messages = Object.assign({}, room.messages);
+    delete messages[key];
+    State.rooms[roomId] = roomPatch(room, { messages: messages });
     syncOpenModal();
   }
 
@@ -2164,11 +2890,473 @@ const CONFIG = {
     room.players[State.user.id] = { id: State.user.id, nick: State.user.nick, at: createdAt, ready: false };
 
     await putRoom(room);
-    State.rooms[room.id] = room;
+    State.rooms[room.id] = normalizeRoom(room.id, room);
     State.unlocked[room.id] = room.passHash;
     render();
     toast('Комната создана', 'ok');
     openRoom(room.id);
+  }
+
+  /* ============================================================
+     Голосовой чат: WebRTC-mesh, сигнализация через комнату
+     ============================================================ */
+
+  var VOICE_ICE = [{ urls: 'stun:stun.l.google.com:19302' }];
+  var VOICE_KINDS = ['hello', 'offer', 'answer', 'candidate', 'bye'];
+  var VOICE_HEARTBEAT_MS = 15000;
+  var VOICE_REMOTE_TTL_MS = 45000;
+  var VOICE_SIGNAL_TTL_MS = 60000;
+  var VOICE_RETRY_MS = 8000;
+
+  var Voice = {
+    roomId: '',
+    peerId: '',
+    active: false,
+    starting: false,
+    muted: false,
+    stream: null,
+    peers: {},
+    remotes: {},
+    seen: {},
+    attempts: {},
+    lastHello: 0,
+    timer: null
+  };
+
+  function voiceSupported() {
+    return typeof window.RTCPeerConnection !== 'undefined' &&
+      !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  }
+
+  function voicePeerList() {
+    var list = Object.keys(Voice.remotes).map(function (id) {
+      var rec = Voice.peers[id];
+      return {
+        id: id,
+        nick: Voice.remotes[id].nick,
+        state: rec ? rec.state : 'wait'
+      };
+    });
+    list.sort(function (a, b) { return String(a.nick).localeCompare(String(b.nick)); });
+    return list;
+  }
+
+  function voiceSignalKey() {
+    return 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  async function sendSignal(roomId, entry) {
+    if (!roomId) return;
+    var key = voiceSignalKey();
+    entry.at = Date.now();
+    Voice.seen[key] = true;
+    await putVoiceData(roomId, key, entry);
+  }
+
+  async function sendHello(roomId) {
+    if (!roomId || !Voice.peerId) return;
+    Voice.lastHello = Date.now();
+    await putVoiceData(roomId, 'h-' + Voice.peerId, {
+      from: Voice.peerId,
+      to: '',
+      kind: 'hello',
+      nick: State.user ? State.user.nick : '',
+      sdp: '',
+      candidate: null,
+      at: Voice.lastHello
+    });
+  }
+
+  function setVoiceStatus(text) {
+    var el = $('#voiceStatus');
+    if (el) el.textContent = text;
+  }
+
+  function updateVoiceDOM() {
+    var list = $('#voicePeers');
+    if (list) list.innerHTML = voicePeersHTML();
+    if (Voice.active) setVoiceStatus(Voice.muted ? 'микрофон выкл.' : 'микрофон вкл.');
+  }
+
+  function attachVoiceAudio(peerId, stream) {
+    var box = $('#voiceAudio');
+    if (!box || !stream) return;
+    var el = box.querySelector('[data-peer="' + peerId + '"]');
+    if (!el) {
+      el = document.createElement('audio');
+      el.setAttribute('data-peer', peerId);
+      el.autoplay = true;
+      el.setAttribute('playsinline', '');
+      box.appendChild(el);
+    }
+    try {
+      el.srcObject = stream;
+    } catch (e) {
+      /* старые браузеры */
+    }
+    var played = el.play && el.play();
+    if (played && typeof played.catch === 'function') {
+      played.catch(function () { /* автоплей может быть заблокирован до клика */ });
+    }
+  }
+
+  function closeVoicePeer(peerId) {
+    var rec = Voice.peers[peerId];
+    if (!rec) return;
+    try {
+      rec.pc.close();
+    } catch (e) {
+      /* ignore */
+    }
+    delete Voice.peers[peerId];
+    delete Voice.attempts[peerId];
+    var box = $('#voiceAudio');
+    var el = box ? box.querySelector('[data-peer="' + peerId + '"]') : null;
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+    updateVoiceDOM();
+  }
+
+  function createVoicePeer(roomId, peerId, nick) {
+    var existing = Voice.peers[peerId];
+    if (existing) {
+      if (nick) existing.nick = nick;
+      return existing;
+    }
+
+    var pc = new window.RTCPeerConnection({ iceServers: VOICE_ICE });
+    var rec = { id: peerId, nick: nick || 'Игрок', pc: pc, state: 'wait' };
+    Voice.peers[peerId] = rec;
+    Voice.remotes[peerId] = { id: peerId, nick: rec.nick, lastSeen: Date.now() };
+
+    pc.onicecandidate = function (event) {
+      if (!event || !event.candidate) return;
+      run(function () {
+        return sendSignal(roomId, {
+          from: Voice.peerId,
+          to: peerId,
+          kind: 'candidate',
+          nick: '',
+          sdp: '',
+          candidate: {
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex
+          }
+        });
+      });
+    };
+
+    pc.ontrack = function (event) {
+      var stream = event && event.streams && event.streams[0];
+      if (stream) attachVoiceAudio(peerId, stream);
+    };
+
+    pc.onconnectionstatechange = function () {
+      var state = pc.connectionState || pc.iceConnectionState;
+      if (state === 'connected') rec.state = 'on';
+      else if (state === 'failed' || state === 'closed') rec.state = 'fail';
+      else if (state === 'disconnected') rec.state = 'wait';
+      else return;
+      updateVoiceDOM();
+      if (rec.state === 'fail') closeVoicePeer(peerId);
+    };
+
+    if (Voice.stream) {
+      Voice.stream.getTracks().forEach(function (track) {
+        try {
+          pc.addTrack(track, Voice.stream);
+        } catch (e) {
+          /* ignore */
+        }
+      });
+    }
+    return rec;
+  }
+
+  async function createVoiceOffer(roomId, peerId, nick) {
+    var rec = createVoicePeer(roomId, peerId, nick);
+    Voice.attempts[peerId] = Date.now();
+    try {
+      var offer = await rec.pc.createOffer();
+      await rec.pc.setLocalDescription(offer);
+      await sendSignal(roomId, {
+        from: Voice.peerId,
+        to: peerId,
+        kind: 'offer',
+        nick: State.user ? State.user.nick : '',
+        sdp: offer.sdp || (rec.pc.localDescription && rec.pc.localDescription.sdp) || '',
+        candidate: null
+      });
+    } catch (e) {
+      closeVoicePeer(peerId);
+    }
+  }
+
+  async function acceptVoiceOffer(roomId, peerId, entry) {
+    var rec = createVoicePeer(roomId, peerId, entry.nick);
+    try {
+      var pc = rec.pc;
+      if (pc.signalingState === 'have-local-offer' && pc.setLocalDescription) {
+        await pc.setLocalDescription({ type: 'rollback' });
+      }
+      await pc.setRemoteDescription({ type: 'offer', sdp: entry.sdp });
+      var answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await sendSignal(roomId, {
+        from: Voice.peerId,
+        to: peerId,
+        kind: 'answer',
+        nick: State.user ? State.user.nick : '',
+        sdp: answer.sdp || (pc.localDescription && pc.localDescription.sdp) || '',
+        candidate: null
+      });
+    } catch (e) {
+      closeVoicePeer(peerId);
+    }
+  }
+
+  async function applyVoiceAnswer(peerId, entry) {
+    var rec = Voice.peers[peerId];
+    if (!rec || !entry.sdp) return;
+    try {
+      await rec.pc.setRemoteDescription({ type: 'answer', sdp: entry.sdp });
+    } catch (e) {
+      /* повторный ответ или гонка сигналов */
+    }
+  }
+
+  async function applyVoiceCandidate(peerId, entry) {
+    var rec = Voice.peers[peerId];
+    if (!rec || !entry.candidate) return;
+    try {
+      await rec.pc.addIceCandidate(entry.candidate);
+    } catch (e) {
+      /* поздний ICE-кандидат */
+    }
+  }
+
+  function handleVoiceHello(entry) {
+    if (!entry.from || entry.from === Voice.peerId) return;
+    var remote = Voice.remotes[entry.from];
+    if (remote) {
+      remote.lastSeen = Date.now();
+      if (entry.nick) remote.nick = entry.nick;
+      return;
+    }
+    Voice.remotes[entry.from] = { id: entry.from, nick: entry.nick || 'Игрок', lastSeen: Date.now() };
+    updateVoiceDOM();
+  }
+
+  function handleVoiceBye(roomId, key, entry) {
+    closeVoicePeer(entry.from);
+    delete Voice.remotes[entry.from];
+    updateVoiceDOM();
+    run(function () { return deleteVoiceData(roomId, key); });
+  }
+
+  function handleVoiceEntry(key, entry) {
+    var roomId = Voice.roomId;
+    if (!roomId || !entry || !entry.from || entry.from === Voice.peerId) return;
+
+    if (entry.kind === 'hello') return handleVoiceHello(entry);
+    if (entry.kind === 'bye') return handleVoiceBye(roomId, key, entry);
+    if (entry.kind === 'offer') return run(function () { return acceptVoiceOffer(roomId, entry.from, entry); });
+    if (entry.kind === 'answer') return run(function () { return applyVoiceAnswer(entry.from, entry); });
+    if (entry.kind === 'candidate') return run(function () { return applyVoiceCandidate(entry.from, entry); });
+  }
+
+  function suggestVoiceOffers(roomId) {
+    var now = Date.now();
+    Object.keys(Voice.remotes).forEach(function (peerId) {
+      if (Voice.peers[peerId]) return;
+      if (Voice.peerId >= peerId) return;
+      var last = Voice.attempts[peerId] || 0;
+      if (now - last < VOICE_RETRY_MS) return;
+      run(function () {
+        return createVoiceOffer(roomId, peerId, Voice.remotes[peerId].nick);
+      });
+    });
+  }
+
+  function cleanupVoiceSignals(room) {
+    var now = Date.now();
+    var voice = room.voice || {};
+    Object.keys(voice).forEach(function (key) {
+      var entry = voice[key];
+      if (!entry) return;
+      var age = entry.at ? now - entry.at : Infinity;
+      var drop = false;
+      if (entry.kind === 'hello') {
+        // своя метка живёт до выхода, чужие устаревают без сердцебиения
+        drop = entry.from !== Voice.peerId && age > VOICE_REMOTE_TTL_MS;
+      } else {
+        // себе адресованные съедены — убираем; остальные ждут TTL
+        drop = age > VOICE_SIGNAL_TTL_MS || (entry.to === Voice.peerId && Voice.seen[key]);
+      }
+      if (!drop) return;
+      run(function () {
+        return deleteVoiceData(room.id, key);
+      });
+    });
+  }
+
+  function voiceTick() {
+    var room = Voice.roomId ? State.rooms[Voice.roomId] : null;
+    if (!room || !Voice.active) return;
+    var now = Date.now();
+    var voice = room.voice || {};
+
+    if (now - Voice.lastHello > VOICE_HEARTBEAT_MS) {
+      run(function () { return sendHello(Voice.roomId); });
+    }
+
+    Object.keys(voice).forEach(function (key) {
+      var entry = voice[key];
+      if (!entry || Voice.seen[key]) return;
+      if (entry.from === Voice.peerId) {
+        Voice.seen[key] = true;
+        return;
+      }
+      if (entry.kind !== 'hello' && entry.to && entry.to !== Voice.peerId) return;
+      Voice.seen[key] = true;
+      try {
+        handleVoiceEntry(key, entry);
+      } catch (e) {
+        /* ignore */
+      }
+    });
+
+    Object.keys(Voice.remotes).forEach(function (peerId) {
+      var remote = Voice.remotes[peerId];
+      if (!remote) return;
+      if (now - remote.lastSeen <= VOICE_REMOTE_TTL_MS) return;
+      closeVoicePeer(peerId);
+      delete Voice.remotes[peerId];
+      updateVoiceDOM();
+    });
+
+    suggestVoiceOffers(Voice.roomId);
+    cleanupVoiceSignals(room);
+  }
+
+  function startVoiceLoop() {
+    stopVoiceLoop();
+    Voice.timer = setInterval(function () {
+      try {
+        voiceTick();
+      } catch (e) {
+        /* ignore */
+      }
+    }, 1200);
+    voiceTick();
+  }
+
+  function stopVoiceLoop() {
+    if (Voice.timer) {
+      clearInterval(Voice.timer);
+      Voice.timer = null;
+    }
+  }
+
+  async function startVoice(roomId) {
+    if (Voice.starting) return;
+    var room = State.rooms[roomId];
+    if (!room || !State.user || !room.players[State.user.id]) {
+      toast('Голос доступен участникам комнаты', 'error');
+      return;
+    }
+    if (!voiceSupported()) {
+      toast('Браузер не поддерживает голосовой чат', 'error');
+      return;
+    }
+    if (Voice.active && Voice.roomId === roomId) return;
+
+    Voice.starting = true;
+    setVoiceStatus('запрашиваю микрофон…');
+    try {
+      var stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true },
+          video: false
+        });
+      } catch (err) {
+        var denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
+        setVoiceStatus(denied ? 'нет доступа к микрофону' : 'микрофон недоступен');
+        toast(denied
+          ? 'Браузер не дал доступ к микрофону — разреши его в адресе сайта'
+          : 'Микрофон недоступен', 'error');
+        return;
+      }
+
+      if (Voice.active) stopVoice(true);
+      Voice.roomId = roomId;
+      Voice.peerId = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      Voice.stream = stream;
+      Voice.active = true;
+      Voice.muted = false;
+      Voice.peers = {};
+      Voice.remotes = {};
+      Voice.seen = {};
+      Voice.attempts = {};
+      Voice.lastHello = 0;
+      await sendHello(roomId);
+      startVoiceLoop();
+      if (Modal.kind === 'room') syncOpenModal();
+      updateVoiceDOM();
+      toast('Голос включён · ждём остальных', 'ok');
+    } finally {
+      Voice.starting = false;
+    }
+  }
+
+  function stopVoice(silent) {
+    var roomId = Voice.roomId;
+    var peerId = Voice.peerId;
+    Object.keys(Voice.peers).forEach(function (id) {
+      closeVoicePeer(id);
+    });
+    Voice.peers = {};
+    Voice.remotes = {};
+    if (Voice.stream) {
+      Voice.stream.getTracks().forEach(function (track) {
+        try {
+          track.stop();
+        } catch (e) {
+          /* ignore */
+        }
+      });
+    }
+    Voice.stream = null;
+    Voice.active = false;
+    Voice.muted = false;
+    Voice.roomId = '';
+    Voice.peerId = '';
+    Voice.seen = {};
+    Voice.attempts = {};
+    stopVoiceLoop();
+    var box = $('#voiceAudio');
+    if (box) box.innerHTML = '';
+    if (roomId && peerId) {
+      run(function () {
+        return sendSignal(roomId, { from: peerId, to: '', kind: 'bye', nick: '', sdp: '', candidate: null })
+          .then(function () { return deleteVoiceData(roomId, 'h-' + peerId); });
+      });
+    }
+    if (!silent && Modal.kind === 'room') syncOpenModal();
+    updateVoiceDOM();
+    if (!silent) toast('Голос выключен');
+  }
+
+  function toggleVoiceMute() {
+    if (!Voice.active || !Voice.stream) return;
+    Voice.muted = !Voice.muted;
+    var tracks = Voice.stream.getAudioTracks ? Voice.stream.getAudioTracks() : Voice.stream.getTracks();
+    tracks.forEach(function (track) {
+      track.enabled = !Voice.muted;
+    });
+    if (Modal.kind === 'room') syncOpenModal();
+    updateVoiceDOM();
   }
 
   /* ============================================================
@@ -2240,6 +3428,27 @@ const CONFIG = {
       case 'delete':
         run(function () { return deleteRoomFlow(roomId); });
         break;
+      case 'vote':
+        run(function () { return castVote(roomId, el.getAttribute('data-side') || ''); });
+        break;
+      case 'chat-del':
+        run(function () { return deleteChatMessage(roomId, el.getAttribute('data-key') || ''); });
+        break;
+      case 'new-match':
+        run(function () { return startNewMatch(roomId); });
+        break;
+      case 'voice-start':
+        run(function () { return startVoice(roomId || Modal.key); });
+        break;
+      case 'voice-mute':
+        toggleVoiceMute();
+        break;
+      case 'voice-stop':
+        stopVoice();
+        break;
+      case 'leave-voice':
+        if (Voice.active) stopVoice(true);
+        break;
       case 'copy':
         run(function () { return copyCode(el.getAttribute('data-code') || ''); });
         break;
@@ -2287,12 +3496,21 @@ const CONFIG = {
       } else if (form.id === 'passForm') {
         event.preventDefault();
         run(submitPassForm);
+      } else if (form.id === 'chatForm') {
+        event.preventDefault();
+        run(function () { return submitChat(form); });
       }
     });
 
     document.addEventListener('change', function (event) {
       var target = event.target;
       if (target && target.id === 'fMode') toggleSlotsField();
+    });
+
+    document.addEventListener('input', function (event) {
+      var target = event.target;
+      if (!target || target.id !== 'chatInput') return;
+      ChatUI.draft = target.value;
     });
 
     document.addEventListener('keydown', function (event) {
@@ -2318,10 +3536,15 @@ const CONFIG = {
       });
     }
 
+    window.addEventListener('pagehide', function () {
+      if (Voice.active) stopVoice(true);
+    });
+
     window.addEventListener('storage', function () {
       if (cloud()) return;
       State.rooms = normalizeRooms(localRooms());
       render();
+      syncOpenModal();
     });
 
     window.addEventListener('unhandledrejection', function (event) {
