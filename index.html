@@ -543,6 +543,38 @@
 
   .me-wins { margin-left: 4px; color: var(--muted); font-family: var(--mono); font-size: 11px; }
 
+  /* ---------- читы ---------- */
+  #cheats { scroll-margin-top: 78px; }
+  .section-title { font-size: 16px; font-weight: 650; }
+  .cheat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .cheat { padding: 14px; border: 1px solid var(--border); border-radius: 6px; }
+  .cheat-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .cheat-head h3 { font-size: 15px; font-weight: 650; }
+  .cheat .hint { margin-top: 0; }
+  .cheat a { color: var(--accent); text-decoration: none; }
+  .cheat a:hover { text-decoration: underline; }
+  .file-list { display: grid; gap: 10px; margin: 12px 0 0; padding: 0; list-style: none; }
+  .file-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .file-row:first-child { padding-top: 0; border-top: 0; }
+  .file-main { display: grid; gap: 2px; min-width: 0; }
+  .file-name { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+  .file-meta { color: var(--muted); font-size: 11px; }
+  .file-row .btn { flex: none; }
+  .file-hashes { margin-top: 12px; }
+  .file-hashes summary { color: var(--muted); font-size: 11px; cursor: pointer; }
+  .file-hashes ul { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+  .file-hashes li { display: grid; gap: 2px; }
+  .file-hashes b { font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--muted); overflow-wrap: anywhere; }
+  .file-hashes code { font-family: var(--mono); font-size: 10px; color: var(--muted); overflow-wrap: anywhere; }
+  .cheats-note { margin-top: 12px; }
+
   /* ---------- toasts ---------- */
   .toasts {
     position: fixed;
@@ -595,6 +627,7 @@
     .dialog-foot .btn { flex: 1 1 auto; }
     .toasts { left: 12px; right: 12px; bottom: 12px; width: auto; }
     .chat-list { max-height: 150px; }
+    .cheat-grid { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 640px) {
@@ -608,6 +641,7 @@
     <div class="wrap header-inner">
       <a class="brand" href="#top">muxostandoff <span class="brand-sub">ХВХ · Standoff 2</span></a>
       <div class="header-actions">
+        <a class="btn btn-sm" href="#cheats">Читы</a>
         <button class="icon-btn" type="button" id="themeToggle" data-act="theme" title="Светлая тема" aria-label="Переключить тему">☀</button>
         <div id="accountSlot"></div>
       </div>
@@ -621,7 +655,89 @@
       <p class="intro-text">Сайт только для ХВХ: здесь читер играет против читера. <strong>Чистым игрокам тут делать нечего</strong> — комнаты, пароли и состав только для своих.</p>
       <div class="intro-actions">
         <button class="btn btn-primary" type="button" data-act="create">Создать комнату</button>
+        <a class="btn" href="#cheats">Читы и файлы</a>
       </div>
+    </section>
+
+
+    <section class="wrap board" id="cheats">
+      <div class="board-head">
+        <div>
+          <h2 class="section-title">Читы</h2>
+          <p class="hint">Файлы лежат в этом же репозитории. Качаешь на свой страх и риск.</p>
+        </div>
+      </div>
+      <div class="cheat-grid">
+        <article class="cheat">
+          <div class="cheat-head">
+            <h3>Exodium</h3>
+            <span class="badge badge--done">оригинал · платный</span>
+          </div>
+          <p class="hint">Оригинальный чит для Windows. Без ключа не работает: ключ покупается в Telegram у
+            <a href="https://t.me/exodiumdlc_bot" target="_blank" rel="noopener noreferrer">@exodiumdlc_bot</a>.</p>
+          <ul class="file-list">
+            <li class="file-row">
+              <div class="file-main">
+                <span class="file-name">Exodium(4).exe</span>
+                <span class="file-meta">18,3 МБ · сам чит</span>
+              </div>
+              <a class="btn btn-sm btn-primary" href="Exodium(4).exe" download>Скачать</a>
+            </li>
+            <li class="file-row">
+              <div class="file-main">
+                <span class="file-name">BlueStacksInstaller_5_22_130_1019_native_e0175934c4a0a56f1db683585ffd1bcf(1).exe</span>
+                <span class="file-meta">928 КБ · BlueStacks 5.22.130, на нём запускается игра</span>
+              </div>
+              <a class="btn btn-sm" href="BlueStacksInstaller_5_22_130_1019_native_e0175934c4a0a56f1db683585ffd1bcf(1).exe" download>Скачать</a>
+            </li>
+          </ul>
+          <details class="file-hashes">
+            <summary>SHA-256 файлов</summary>
+            <ul>
+              <li><b>Exodium(4).exe</b>
+                <code>414e77447248b32aa20f7d398a0eca465f146b7caf3bd16183fef60a02999783</code></li>
+              <li><b>BlueStacksInstaller_5_22_130_1019_native_e0175934c4a0a56f1db683585ffd1bcf(1).exe</b>
+                <code>801895b346e936c1a7958135c285bab8d337e2d908e7d7b2fca4e3c39a786ed7</code></li>
+            </ul>
+          </details>
+        </article>
+
+        <article class="cheat">
+          <div class="cheat-head">
+            <h3>ZeninLoader</h3>
+            <span class="badge badge--lobby">кряк · неофициально</span>
+          </div>
+          <p class="hint">Взломанная версия загрузчика Zenin, не от авторов чита. Что внутри — не проверено,
+            ключи и доступы сюда не входят.</p>
+          <ul class="file-list">
+            <li class="file-row">
+              <div class="file-main">
+                <span class="file-name">ZeninLoader(3).apk</span>
+                <span class="file-meta">16,9 МБ · Android-пакет, ставится в плеер</span>
+              </div>
+              <a class="btn btn-sm btn-primary" href="ZeninLoader(3).apk" download>Скачать</a>
+            </li>
+            <li class="file-row">
+              <div class="file-main">
+                <span class="file-name">BlueStacks_App_Player_v5.20.101.exe</span>
+                <span class="file-meta">911 КБ · плеер BlueStacks под этот APK</span>
+              </div>
+              <a class="btn btn-sm" href="BlueStacks_App_Player_v5.20.101.exe" download>Скачать</a>
+            </li>
+          </ul>
+          <details class="file-hashes">
+            <summary>SHA-256 файлов</summary>
+            <ul>
+              <li><b>ZeninLoader(3).apk</b>
+                <code>b97e1843fdb0481be98f93230ab395bf49ad5840684c83f2d55c33983971ed47</code></li>
+              <li><b>BlueStacks_App_Player_v5.20.101.exe</b>
+                <code>baa2597a8b5b5574c3d5b5308edc44cd2a8eb16223ba0b21d2bad59aa1cd488c</code></li>
+            </ul>
+          </details>
+        </article>
+      </div>
+      <p class="hint cheats-note">Файлы загружены в репозиторий как есть и антивирусом не проверялись: читы и кряки
+        часто ловят детект. Скачивай только если понимаешь, что делаешь, и сверяй SHA-256 после загрузки.</p>
     </section>
 
     <section class="wrap board">
