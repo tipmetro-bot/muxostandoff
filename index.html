@@ -1412,6 +1412,10 @@ const CONFIG = {
      Проверка Standoff 2 ID
      ============================================================ */
 
+  function verifyIsLive() {
+    return String(CONFIG.verifyEndpoint || '').trim() !== '';
+  }
+
   async function fetchNick(id) {
     var endpoint = String(CONFIG.verifyEndpoint || '').trim();
     if (endpoint) {
@@ -1470,9 +1474,11 @@ const CONFIG = {
         '<label class="field"><span>Standoff 2 ID</span>' +
         '<input id="rId" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="7–12 цифр"></label>' +
         '<p class="form-error" id="rErr" hidden></p>' +
-        '<p class="hint">Ник подтягивается из проверки ID — вручную его ввести нельзя. ' +
-        'Сейчас проверка демонстрационная: ник считается из ID. Свой ник можно посмотреть в ' +
-        '<a href="https://store.standoff2.com/ru-RU" target="_blank" rel="noopener noreferrer">магазине Standoff 2</a>.</p>' +
+        (verifyIsLive()
+          ? '<p class="hint">Ник подтягивается из проверки Standoff 2 ID — вручную его ввести нельзя.</p>'
+          : '<p class="hint">Ник подтягивается из проверки ID — вручную его ввести нельзя. ' +
+            'Сейчас проверка демонстрационная: ник считается из ID. Свой ник можно посмотреть в ' +
+            '<a href="https://store.standoff2.com/ru-RU" target="_blank" rel="noopener noreferrer">магазине Standoff 2</a>.</p>') +
         '<div class="dialog-foot"><button type="button" class="btn" data-act="close-modal">Отмена</button>' +
         '<button type="submit" class="btn btn-primary" id="rVerifyBtn">Проверить</button></div>' +
         '</form>';
@@ -1480,7 +1486,8 @@ const CONFIG = {
     return '<div class="verified">' +
       '<span class="avatar avatar--lg">' + esc(initials(Auth.regNick)) + '</span>' +
       '<span class="verified-text"><b>' + esc(Auth.regNick) + '</b>' +
-      '<span class="muted">найден в Standoff 2 · ID ' + esc(Auth.regId) + ' · демо-проверка</span></span>' +
+      '<span class="muted">найден в Standoff 2 · ID ' + esc(Auth.regId) +
+      (verifyIsLive() ? '' : ' · демо-проверка') + '</span></span>' +
       '</div>' +
       '<form id="regForm" class="form" novalidate>' +
       '<label class="field"><span>Пароль</span>' +

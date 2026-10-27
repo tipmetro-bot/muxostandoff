@@ -153,6 +153,23 @@ verifyEndpoint: "https://your-proxy.example.com/standoff?id={id}",
 Pages прочитать ответ магазина невозможно — ни с какими настройками сайта. Остаётся только серверный
 прокси, которому вы доверяете.
 
+### Готовый прокси в репозитории
+
+В папке [`proxy/`](proxy/) лежит рабочий сервис: Python + Playwright открывает магазин,
+вводит ID и отдаёт `{"nick": "..."}` с CORS. Это единственный вариант, который действительно
+возвращает настоящий ник — обычные HTTP-запросы магазин режет.
+
+```bash
+cd proxy
+pip install -r requirements.txt
+playwright install chromium
+python3 verify.py --port 8787
+```
+
+Дальше туннель `cloudflared tunnel --url http://127.0.0.1:8787` и адрес в `verifyEndpoint`.
+Подробно — в [`proxy/README.md`](proxy/README.md): запуск, `--stub` для проверки связки без
+браузера, `--calibrate` для дампа страницы и разбор типичных ошибок.
+
 ### Рецепт прокси (Cloudflare Worker)
 
 ```js
