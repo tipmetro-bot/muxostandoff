@@ -1,0 +1,2317 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>muxostandoff — ХВХ-рум Standoff 2</title>
+<meta name="description" content="muxostandoff — ХВХ-рум для Standoff 2. Только читер против читера.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230b0b0c'/%3E%3Crect x='4.5' y='4.5' width='23' height='23' fill='none' stroke='%23ff4d2f' stroke-width='2'/%3E%3Cpath d='M9 11l3.5 10L16 14l3.5 7L23 11' fill='none' stroke='%23ff4d2f' stroke-width='2'/%3E%3C/svg%3E">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  :root {
+    --bg: #0b0b0c;
+    --panel: #121214;
+    --panel-2: #19191c;
+    --border: #26262b;
+    --border-strong: #35353c;
+    --text: #ececee;
+    --muted: #8b8b93;
+    --accent: #ff4d2f;
+    --accent-hover: #ff6347;
+    --accent-soft: rgba(255, 77, 47, .12);
+    --radius: 6px;
+    --wrap: 1120px;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    color-scheme: dark;
+  }
+
+  html[data-theme="light"] {
+    --bg: #f5f5f3;
+    --panel: #ffffff;
+    --panel-2: #efefec;
+    --border: #dcdcd7;
+    --border-strong: #c5c5bf;
+    --text: #161617;
+    --muted: #6b6b72;
+    --accent: #d93a1c;
+    --accent-hover: #c03317;
+    --accent-soft: rgba(217, 58, 28, .1);
+    color-scheme: light;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body.no-scroll { overflow: hidden; }
+
+  h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -.01em; }
+  p { margin: 0; }
+  a { color: inherit; }
+  [hidden] { display: none !important; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .wrap { width: 100%; max-width: var(--wrap); margin: 0 auto; padding: 0 20px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+
+  /* ---------- header ---------- */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 60px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    text-decoration: none;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+  }
+
+  .brand-sub {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .header-actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+  .me { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+  .me-nick {
+    font-size: 13px;
+    font-weight: 600;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    background: var(--panel-2);
+    color: var(--text);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .04em;
+  }
+
+  .avatar--sm { width: 22px; height: 22px; font-size: 9px; }
+  .avatar--lg { width: 44px; height: 44px; font-size: 14px; border-color: var(--accent); color: var(--accent); }
+  .avatar--empty { border-style: dashed; color: var(--muted); }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    background: var(--panel);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background .12s, border-color .12s, color .12s;
+  }
+
+  .btn:hover:not(:disabled) { background: var(--panel-2); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-primary { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-danger { border-color: var(--accent); background: transparent; color: var(--accent); }
+  .btn-danger:hover:not(:disabled) { background: var(--accent-soft); }
+
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .icon-btn:hover { color: var(--text); border-color: var(--border-strong); }
+
+  /* ---------- intro ---------- */
+  .intro { padding: 34px 0 22px; border-bottom: 1px solid var(--border); }
+  .kicker {
+    margin-bottom: 10px;
+    color: var(--accent);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+  }
+  .intro h1 { font-size: 32px; line-height: 1.15; }
+  .intro-text { margin-top: 12px; max-width: 660px; color: var(--muted); }
+  .intro-text strong { color: var(--text); font-weight: 600; }
+  .intro-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+
+  /* ---------- board ---------- */
+  .board { padding: 22px 0 0; }
+  .board-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .filters, .style-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .style-filters { margin-bottom: 16px; }
+
+  .filter-label {
+    margin-right: 4px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--panel);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color .12s, color .12s;
+  }
+
+  .chip:hover { border-color: var(--border-strong); }
+  .chip.is-active { border-color: var(--accent); color: var(--accent); }
+  .chip-count { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+  .chip.is-active .chip-count { color: var(--accent); }
+
+  .search { flex: 1 1 240px; max-width: 340px; }
+  .search input { width: 100%; }
+
+  input, select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    background: var(--panel-2);
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+  }
+
+  input::placeholder { color: var(--muted); opacity: .75; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  input:disabled { opacity: .6; }
+
+  /* ---------- grid ---------- */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+    padding-bottom: 44px;
+  }
+
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--panel);
+    cursor: pointer;
+    transition: border-color .12s;
+  }
+
+  .card:hover { border-color: var(--border-strong); }
+
+  .card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .card-title { font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
+
+  .card-meta { display: flex; flex-wrap: wrap; gap: 4px 0; font-size: 12px; color: var(--muted); }
+  .card-meta span + span::before { content: "·"; margin: 0 8px; color: var(--border-strong); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: .03em;
+    white-space: nowrap;
+  }
+
+  .badge--rage { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .badge--semi { border-color: var(--accent); color: var(--accent); }
+  .badge--legit { border-color: var(--border-strong); color: var(--muted); }
+
+  .code { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; color: var(--muted); }
+
+  .fill { height: 3px; border-radius: 2px; background: var(--panel-2); overflow: hidden; }
+  .fill > span { display: block; height: 100%; background: var(--accent); }
+
+  .card-count { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); }
+  .card-count b { color: var(--text); font-weight: 600; font-family: var(--mono); }
+
+  .teams-mini { display: grid; gap: 5px; min-height: 40px; font-size: 12px; color: var(--muted); }
+  .teams-mini > div { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .team-names { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .team-tag {
+    flex: none;
+    width: 15px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 10px;
+    line-height: 15px;
+    text-align: center;
+  }
+
+  .card-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; }
+  .owner { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .state {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 40px 20px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .state p { max-width: 440px; }
+
+  /* ---------- footer ---------- */
+  .site-footer { margin-top: auto; border-top: 1px solid var(--border); padding: 14px 0; }
+  .footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    flex-wrap: wrap;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  #dbStatus { font-family: var(--mono); font-size: 11px; }
+
+  /* ---------- modal ---------- */
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 28px 16px;
+    overflow: auto;
+    background: rgba(0, 0, 0, .62);
+  }
+
+  html[data-theme="light"] .modal { background: rgba(20, 20, 22, .35); }
+
+  .dialog {
+    width: 100%;
+    max-width: 560px;
+    padding: 16px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--panel);
+  }
+
+  .dialog--wide { max-width: 700px; }
+
+  .dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .dialog-head h2 { font-size: 17px; line-height: 1.25; overflow-wrap: anywhere; }
+  .dialog-sub { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+  .dialog-foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+  .form { display: grid; gap: 12px; }
+  .field { display: grid; gap: 5px; color: var(--muted); font-size: 12px; }
+  .form-error { color: var(--accent); font-size: 12px; }
+  .hint { color: var(--muted); font-size: 12px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field-check { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; cursor: pointer; }
+  .field-check input { width: auto; margin: 0; }
+
+  .tabs { display: flex; gap: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+  .tab {
+    margin-bottom: -1px;
+    padding: 8px 0;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .tab.is-active { color: var(--text); border-bottom-color: var(--accent); }
+
+  .verified {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .verified-text { display: grid; gap: 2px; font-size: 13px; }
+
+  .meta { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0 0 14px; font-size: 13px; }
+  .meta dt { color: var(--muted); }
+  .meta dd { margin: 0; overflow-wrap: anywhere; }
+
+  .code-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .code-row .code {
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--panel-2);
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  .fill-row { display: grid; gap: 6px; }
+
+  .teams { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .team { padding: 10px; border: 1px solid var(--border); border-radius: 6px; }
+  .team-title {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+
+  .slots { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+  .slot { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .slot:last-child { border-bottom: 0; }
+  .slot-nick { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .slot-idx { margin-left: auto; color: var(--muted); font-family: var(--mono); font-size: 10px; }
+  .ready-tag {
+    flex: none;
+    padding: 0 4px;
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    color: var(--accent);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+
+  /* ---------- toasts ---------- */
+  .toasts {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 80;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(360px, calc(100vw - 32px));
+    pointer-events: none;
+  }
+
+  .toast {
+    padding: 9px 12px;
+    border: 1px solid var(--border-strong);
+    border-left: 2px solid var(--muted);
+    border-radius: 4px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 13px;
+    animation: toast-in .14s ease-out;
+  }
+
+  .toast--error { border-left-color: var(--accent); }
+  .toast--ok { border-left-color: var(--text); }
+
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  /* ---------- mobile ---------- */
+  @media (max-width: 720px) {
+    .header-inner { min-height: 54px; }
+    .brand-sub { display: none; }
+    .me-nick { max-width: 96px; }
+    .intro { padding: 26px 0 18px; }
+    .intro h1 { font-size: 24px; }
+    .grid { grid-template-columns: 1fr; gap: 10px; }
+    .board-head { flex-direction: column; align-items: stretch; }
+    .search { max-width: none; flex: 1 1 auto; }
+    .dialog { padding: 14px; }
+    .modal { padding: 12px 8px; }
+    .dialog-foot { justify-content: stretch; }
+    .dialog-foot .btn { flex: 1 1 auto; }
+    .toasts { left: 12px; right: 12px; bottom: 12px; width: auto; }
+  }
+
+  @media (max-width: 640px) {
+    .teams { grid-template-columns: 1fr; }
+    .row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="#top">muxostandoff <span class="brand-sub">ХВХ · Standoff 2</span></a>
+      <div class="header-actions">
+        <button class="icon-btn" type="button" id="themeToggle" data-act="theme" title="Светлая тема" aria-label="Переключить тему">☀</button>
+        <div id="accountSlot"></div>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="wrap intro">
+      <p class="kicker">ХВХ · читер против читера</p>
+      <h1>ХВХ-рум для Standoff 2</h1>
+      <p class="intro-text">Сайт только для ХВХ: здесь читер играет против читера. <strong>Чистым игрокам тут делать нечего</strong> — комнаты, пароли и состав только для своих.</p>
+      <div class="intro-actions">
+        <button class="btn btn-primary" type="button" data-act="create">Создать комнату</button>
+      </div>
+    </section>
+
+    <section class="wrap board">
+      <div class="board-head">
+        <div class="filters" id="formatFilters"></div>
+        <div class="search">
+          <input type="search" id="searchInput" placeholder="Поиск: название, карта, ник" aria-label="Поиск по комнатам" autocomplete="off">
+        </div>
+      </div>
+      <div class="style-filters" id="styleFilters"></div>
+      <div class="grid" id="roomsGrid"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <span id="dbStatus"></span>
+      <span>Только ХВХ · чистым игрокам здесь нечего делать</span>
+    </div>
+  </footer>
+
+  <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+  <div class="modal" id="modal" hidden></div>
+
+  <noscript>
+    <p style="padding:20px">Для работы сайта нужен JavaScript.</p>
+  </noscript>
+
+<script>
+const CONFIG = {
+  databaseURL: "",      // https://xxx-default-rtdb.europe-west1.firebasedatabase.app
+  verifyEndpoint: "",   // проверка ника: вернуть {"nick":"Ник"} или 404
+  demoVerifyDelay: 700
+};
+
+(function () {
+  'use strict';
+
+  /* ============================================================
+     Утилиты
+     ============================================================ */
+
+  const $ = function (sel, root) { return (root || document).querySelector(sel); };
+  const $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+
+  const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+
+  function esc(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) { return ESC_MAP[ch]; });
+  }
+
+  function delay(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  function isDigits(value, min, max) {
+    return new RegExp('^\\d{' + min + ',' + max + '}$').test(String(value));
+  }
+
+  function hash32(str) {
+    var h = 0x811c9dc5;
+    for (var i = 0; i < str.length; i += 1) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return ('0000000' + h.toString(16)).slice(-8);
+  }
+
+  function passHash(pass, salt) {
+    return hash32('mx1|' + salt + '|' + pass) + hash32('mx2|' + pass + '|' + salt);
+  }
+
+  function initials(nick) {
+    var clean = String(nick || '').replace(/[^A-Za-zА-Яа-яЁё]+/g, ' ').trim();
+    var parts = clean ? clean.split(/\s+/) : [];
+    var out = '';
+    if (parts.length >= 2) out = parts[0].charAt(0) + parts[1].charAt(0);
+    else if (parts.length === 1) out = parts[0].slice(0, 2);
+    return (out || 'MX').toUpperCase();
+  }
+
+  var NICK_STEMS = ['Vexor', 'Nox', 'Krag', 'Ryze', 'Zeta', 'Onyx', 'Kilo', 'Fury', 'Sable', 'Void',
+    'Rift', 'Blaze', 'Hexa', 'Nomad', 'Pulse', 'Quark', 'Specter', 'Talon', 'Umbra', 'Wraith',
+    'Vandal', 'Echo', 'Grim', 'Lynx'];
+
+  function demoNick(id) {
+    var h = parseInt(hash32('nick|' + id), 16);
+    var stem = NICK_STEMS[h % NICK_STEMS.length];
+    var num = (h >>> 7) % 100;
+    return stem + '_' + (num < 10 ? '0' + num : String(num));
+  }
+
+  function AppError(message) {
+    var err = new Error(message);
+    err.name = 'AppError';
+    return err;
+  }
+
+  function messageOf(err) {
+    if (!err) return 'Не удалось выполнить действие';
+    if (err.name === 'AppError') return err.message;
+    if (err.name === 'AbortError') return 'База не отвечает';
+    if (err instanceof TypeError) return 'Нет связи с базой';
+    if (typeof err.message === 'string' && err.message.indexOf('база:') === 0) return err.message;
+    return 'Не удалось выполнить действие';
+  }
+
+  function run(fn) {
+    try {
+      var result = fn();
+      if (result && typeof result.then === 'function') {
+        return result.catch(function (err) { toast(messageOf(err), 'error'); });
+      }
+      return result;
+    } catch (err) {
+      toast(messageOf(err), 'error');
+      return undefined;
+    }
+  }
+
+  /* ============================================================
+     Локальное хранилище
+     ============================================================ */
+
+  var LS_PREFIX = 'mx_';
+  var memory = {};
+  var lsOk = true;
+
+  try {
+    window.localStorage.setItem(LS_PREFIX + 'probe', '1');
+    window.localStorage.removeItem(LS_PREFIX + 'probe');
+  } catch (e) {
+    lsOk = false;
+  }
+
+  var LS = {
+    get: function (key, fallback) {
+      try {
+        var raw = lsOk ? window.localStorage.getItem(LS_PREFIX + key) : memory[key];
+        if (raw == null) return fallback;
+        return JSON.parse(raw);
+      } catch (e) {
+        return fallback;
+      }
+    },
+    set: function (key, value) {
+      var raw;
+      try { raw = JSON.stringify(value); } catch (e) { return false; }
+      if (!lsOk) { memory[key] = raw; return true; }
+      try {
+        window.localStorage.setItem(LS_PREFIX + key, raw);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
+    remove: function (key) {
+      if (!lsOk) { delete memory[key]; return; }
+      try { window.localStorage.removeItem(LS_PREFIX + key); } catch (e) { /* ignore */ }
+    }
+  };
+
+  /* ============================================================
+     Константы предметной области
+     ============================================================ */
+
+  var MODE_CAP = { '1x1': 2, '2x2': 4, '3x3': 6, '4x4': 8, '5x5': 10 };
+  var CUSTOM_SLOTS = [2, 4, 6, 8, 10, 12, 14];
+  var STYLE_LABEL = { legit: 'легит', semi: 'семи-рейдж', rage: 'рейдж' };
+  var MAPS = ['Sandstone', 'Province', 'Breeze', 'Rust', 'Training', 'Aim Map', 'Любая'];
+  var REGIONS = ['EU', 'RU', 'KZ', 'BY', 'UA', 'TR', 'CIS'];
+
+  var FORMAT_FILTERS = [
+    { key: 'all', label: 'Все' },
+    { key: '1x1', label: '1x1' },
+    { key: '2x2', label: '2x2' },
+    { key: '3x3', label: '3x3' },
+    { key: '4x4', label: '4x4' },
+    { key: '5x5', label: '5x5' },
+    { key: 'custom', label: 'Свой' },
+    { key: 'mine', label: 'Мои' }
+  ];
+
+  var STYLE_FILTERS = [
+    { key: 'all', label: 'Все' },
+    { key: 'legit', label: 'легит' },
+    { key: 'semi', label: 'семи-рейдж' },
+    { key: 'rage', label: 'рейдж' }
+  ];
+
+  /* ============================================================
+     Состояние
+     ============================================================ */
+
+  var State = {
+    user: null,
+    rooms: {},
+    loading: true,
+    filter: 'all',
+    style: 'all',
+    query: '',
+    unlocked: {}
+  };
+
+  var DB = { mode: 'local', base: '', es: null };
+  var pending = null;
+  var renderTimer = null;
+
+  var Auth = { tab: 'login', regId: '', regNick: '' };
+  var Modal = { kind: null, key: null, armed: null, timer: null, lastFocus: null };
+
+  /* ============================================================
+     Нормализация данных
+     ============================================================ */
+
+  function normalizePlayers(raw) {
+    var out = {};
+    if (!raw || typeof raw !== 'object') return out;
+    Object.keys(raw).forEach(function (pid) {
+      var p = raw[pid];
+      if (!p || typeof p !== 'object') return;
+      var id = String(p.id || pid);
+      out[id] = {
+        id: id,
+        nick: String(p.nick || 'Игрок').slice(0, 24),
+        at: Number(p.at) || 0,
+        ready: p.ready === true
+      };
+    });
+    return out;
+  }
+
+  function normalizeRoom(id, raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var cap = Number(raw.cap);
+    if (!isFinite(cap)) cap = MODE_CAP[raw.mode] || 2;
+    cap = Math.max(2, Math.min(14, Math.round(cap)));
+    if (cap % 2 !== 0) cap += 1;
+    var mode = raw.mode === 'custom' ? 'custom' : (MODE_CAP[raw.mode] ? raw.mode : 'custom');
+    var style = STYLE_LABEL[raw.style] ? raw.style : 'rage';
+    var ping = (typeof raw.ping === 'number' && isFinite(raw.ping)) ? Math.round(raw.ping) : null;
+    return {
+      id: String(id),
+      name: String(raw.name || 'Без названия').slice(0, 42),
+      mode: mode,
+      cap: cap,
+      map: MAPS.indexOf(raw.map) >= 0 ? raw.map : (String(raw.map || 'Любая').slice(0, 20) || 'Любая'),
+      region: REGIONS.indexOf(raw.region) >= 0 ? raw.region : 'EU',
+      ping: ping,
+      style: style,
+      passHash: typeof raw.passHash === 'string' ? raw.passHash : '',
+      ownerId: String(raw.ownerId || ''),
+      ownerNick: String(raw.ownerNick || 'Игрок').slice(0, 24),
+      code: String(raw.code || '').slice(0, 12),
+      createdAt: Number(raw.createdAt) || 0,
+      players: normalizePlayers(raw.players)
+    };
+  }
+
+  function normalizeRooms(raw) {
+    var out = {};
+    if (!raw || typeof raw !== 'object') return out;
+    Object.keys(raw).forEach(function (id) {
+      var room = normalizeRoom(id, raw[id]);
+      if (room) out[id] = room;
+    });
+    return out;
+  }
+
+  function roomPayload(room) {
+    return {
+      name: room.name,
+      mode: room.mode,
+      cap: room.cap,
+      map: room.map,
+      region: room.region,
+      ping: room.ping,
+      style: room.style,
+      passHash: room.passHash,
+      ownerId: room.ownerId,
+      ownerNick: room.ownerNick,
+      code: room.code,
+      createdAt: room.createdAt,
+      players: room.players
+    };
+  }
+
+  /* ============================================================
+     Слой данных: Firebase REST / localStorage
+     ============================================================ */
+
+  function cloud() { return DB.mode === 'cloud'; }
+  function dbURL(path) { return String(DB.base).replace(/\/+$/, '') + '/' + path + '.json'; }
+
+  function api(method, path, body, timeout) {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { try { ctrl.abort(); } catch (e) { /* ignore */ } }, timeout || 9000);
+    var opts = { method: method, signal: ctrl.signal, cache: 'no-store' };
+    if (body !== undefined) {
+      opts.headers = { 'Content-Type': 'text/plain;charset=UTF-8' };
+      opts.body = JSON.stringify(body);
+    }
+    return fetch(dbURL(path), opts).then(function (res) {
+      if (!res.ok) throw new Error('база: HTTP ' + res.status);
+      return res.text().then(function (text) {
+        if (!text) return null;
+        try { return JSON.parse(text); } catch (e) { throw new Error('база: некорректный ответ'); }
+      });
+    }).then(function (data) {
+      clearTimeout(timer);
+      return data;
+    }, function (err) {
+      clearTimeout(timer);
+      throw err;
+    });
+  }
+
+  function localRooms() {
+    var rooms = LS.get('rooms', {});
+    return rooms && typeof rooms === 'object' ? rooms : {};
+  }
+
+  function localUsers() {
+    var users = LS.get('users', {});
+    return users && typeof users === 'object' ? users : {};
+  }
+
+  async function fetchRooms() {
+    if (cloud()) {
+      var data = await api('GET', 'rooms');
+      return normalizeRooms(data || {});
+    }
+    return normalizeRooms(localRooms());
+  }
+
+  async function putRoom(room) {
+    if (cloud()) {
+      await api('PUT', 'rooms/' + encodeURIComponent(room.id), roomPayload(room));
+      return;
+    }
+    var rooms = localRooms();
+    rooms[room.id] = roomPayload(room);
+    LS.set('rooms', rooms);
+  }
+
+  async function patchRoom(id, patch) {
+    if (cloud()) {
+      await api('PATCH', 'rooms/' + encodeURIComponent(id), patch);
+      return;
+    }
+    var rooms = localRooms();
+    if (rooms[id]) {
+      rooms[id] = Object.assign({}, rooms[id], patch);
+      LS.set('rooms', rooms);
+    }
+  }
+
+  async function deleteRoomData(id) {
+    if (cloud()) {
+      await api('DELETE', 'rooms/' + encodeURIComponent(id));
+      return;
+    }
+    var rooms = localRooms();
+    delete rooms[id];
+    LS.set('rooms', rooms);
+  }
+
+  async function getUser(id) {
+    if (cloud()) {
+      var user = await api('GET', 'users/' + encodeURIComponent(id));
+      return user && typeof user === 'object' ? user : null;
+    }
+    var users = localUsers();
+    return users[id] || null;
+  }
+
+  async function putUser(user) {
+    if (cloud()) {
+      await api('PUT', 'users/' + encodeURIComponent(user.id), user);
+      return;
+    }
+    var users = localUsers();
+    users[user.id] = user;
+    LS.set('users', users);
+  }
+
+  async function createUser(user) {
+    var existing = await getUser(user.id);
+    if (existing) throw AppError('Этот ID уже зарегистрирован');
+    await putUser(user);
+  }
+
+  /* ============================================================
+     Live-обновления
+     ============================================================ */
+
+  function stopLive() {
+    if (DB.es) {
+      try { DB.es.close(); } catch (e) { /* ignore */ }
+      DB.es = null;
+    }
+  }
+
+  function startLive() {
+    if (!cloud() || typeof window.EventSource === 'undefined') return;
+    stopLive();
+    try {
+      var es = new window.EventSource(String(DB.base).replace(/\/+$/, '') + '/rooms.json');
+      DB.es = es;
+      es.addEventListener('put', onLivePut);
+      es.addEventListener('patch', onLivePatch);
+      es.addEventListener('cancel', onLiveCancel);
+      es.onerror = function () { /* EventSource переподключится сам */ };
+    } catch (e) {
+      DB.es = null;
+    }
+  }
+
+  function onLivePut(event) {
+    var payload;
+    try { payload = JSON.parse(event.data); } catch (e) { return; }
+    if (!payload) return;
+    var path = typeof payload.path === 'string' ? payload.path : '/';
+    if (path === '/' || path === '') {
+      State.rooms = normalizeRooms(payload.data || {});
+    } else {
+      var parts = path.split('/').filter(Boolean);
+      var id = parts[0];
+      if (!id) return;
+      if (parts.length === 1) {
+        var room = normalizeRoom(id, payload.data);
+        if (room) State.rooms[id] = room;
+        else delete State.rooms[id];
+      }
+    }
+    scheduleRender();
+  }
+
+  function onLivePatch(event) {
+    var payload;
+    try { payload = JSON.parse(event.data); } catch (e) { return; }
+    if (!payload) return;
+    var parts = String(payload.path || '/').split('/').filter(Boolean);
+    var id = parts[0];
+    if (!id || parts.length !== 1 || !State.rooms[id]) return;
+    State.rooms[id] = normalizeRoom(id, Object.assign({}, State.rooms[id], payload.data || {}));
+    scheduleRender();
+  }
+
+  function onLiveCancel() {
+    stopLive();
+    fetchRooms().then(function (rooms) {
+      State.rooms = rooms;
+      render();
+      syncOpenModal();
+    }).catch(function () {
+      goDegraded();
+    });
+  }
+
+  function scheduleRender() {
+    if (renderTimer) return;
+    renderTimer = setTimeout(function () {
+      renderTimer = null;
+      syncOpenModal();
+      renderFilters();
+      renderGrid();
+    }, 40);
+  }
+
+  function goDegraded(message) {
+    if (DB.mode === 'degraded') return;
+    stopLive();
+    DB.mode = 'degraded';
+    State.rooms = normalizeRooms(localRooms());
+    render();
+    syncOpenModal();
+    toast(message || 'Облако недоступно · локальный режим', 'error');
+  }
+
+  /* ============================================================
+     Загрузка базы
+     ============================================================ */
+
+  async function initStore() {
+    var url = String(CONFIG.databaseURL || '').trim();
+    if (!url || typeof fetch === 'undefined') {
+      DB.mode = 'local';
+      State.rooms = normalizeRooms(localRooms());
+      State.loading = false;
+      render();
+      return;
+    }
+    DB.base = url;
+    try {
+      var data = await api('GET', 'rooms', undefined, 7000);
+      DB.mode = 'cloud';
+      State.rooms = normalizeRooms(data || {});
+      State.loading = false;
+      render();
+      startLive();
+    } catch (e) {
+      DB.mode = 'degraded';
+      State.rooms = normalizeRooms(localRooms());
+      State.loading = false;
+      render();
+      toast('Облако недоступно · локальный режим', 'error');
+    }
+  }
+
+  /* ============================================================
+     Производные данные комнат
+     ============================================================ */
+
+  function playerList(room) {
+    var players = room.players || {};
+    return Object.keys(players).map(function (k) { return players[k]; }).filter(Boolean).sort(function (a, b) {
+      return (a.at || 0) - (b.at || 0) || String(a.id).localeCompare(String(b.id));
+    });
+  }
+
+  function teamSize(room) { return Math.max(1, Math.floor(room.cap / 2)); }
+
+  function splitTeams(room) {
+    var list = playerList(room);
+    var half = teamSize(room);
+    return { a: list.slice(0, half), b: list.slice(half, half * 2) };
+  }
+
+  function isFull(room) { return playerList(room).length >= room.cap; }
+  function isMine(room) { return !!(State.user && (room.ownerId === State.user.id || room.players[State.user.id])); }
+
+  function modeLabel(room) { return room.mode === 'custom' ? 'свой · ' + room.cap : room.mode; }
+  function styleLabel(style) { return STYLE_LABEL[style] || 'рейдж'; }
+
+  function formatWhen(ts) {
+    if (!ts) return '—';
+    var diff = Date.now() - ts;
+    if (diff < 60000) return 'только что';
+    var mins = Math.floor(diff / 60000);
+    if (mins < 60) return mins + ' мин назад';
+    var hours = Math.floor(mins / 60);
+    if (hours < 24) return hours + ' ч назад';
+    var days = Math.floor(hours / 24);
+    if (days < 7) return days + ' дн назад';
+    try {
+      return new Date(ts).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch (e) {
+      return '—';
+    }
+  }
+
+  function searchText(room) {
+    var nicks = playerList(room).map(function (p) { return p.nick; }).join(' ');
+    return [room.name, room.code, room.map, room.region, room.ownerNick, nicks,
+      styleLabel(room.style), room.style || ''].join(' ').toLowerCase();
+  }
+
+  /* ============================================================
+     Модальные окна
+     ============================================================ */
+
+  function openModal(kind, key, inner, opts) {
+    var root = $('#modal');
+    if (!Modal.kind) Modal.lastFocus = document.activeElement;
+    Modal.kind = kind;
+    Modal.key = key || null;
+    var scroll = root.scrollTop;
+    root.hidden = false;
+    document.body.classList.add('no-scroll');
+    root.innerHTML = '<div class="dialog' + (opts && opts.wide ? ' dialog--wide' : '') + '" role="dialog" aria-modal="true">' + inner + '</div>';
+    if (opts && opts.keepScroll) root.scrollTop = scroll;
+    else root.scrollTop = 0;
+    if (!(opts && opts.keepFocus)) {
+      var dlg = root.querySelector('.dialog');
+      var target = dlg && dlg.querySelector('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea');
+      if (!target) target = dlg && dlg.querySelector('[data-act="close-modal"]');
+      if (target && target.focus) {
+        try { target.focus(); } catch (e) { /* ignore */ }
+      }
+    }
+  }
+
+  function closeModal() {
+    var root = $('#modal');
+    if (Modal.kind === 'auth') pending = null;
+    if (!Modal.kind) return;
+    Modal.kind = null;
+    Modal.key = null;
+    Modal.armed = null;
+    clearTimeout(Modal.timer);
+    root.hidden = true;
+    root.innerHTML = '';
+    document.body.classList.remove('no-scroll');
+    var focus = Modal.lastFocus;
+    Modal.lastFocus = null;
+    if (focus && focus.focus) {
+      try { focus.focus(); } catch (e) { /* ignore */ }
+    }
+  }
+
+  function modalHead(title, subtitleHTML) {
+    return '<div class="dialog-head"><div><h2>' + esc(title) + '</h2>' +
+      (subtitleHTML ? '<div class="dialog-sub">' + subtitleHTML + '</div>' : '') +
+      '</div><button class="icon-btn" type="button" data-act="close-modal" aria-label="Закрыть">✕</button></div>';
+  }
+
+  function badgeHTML(style) {
+    return '<span class="badge badge--' + esc(style) + '">' + esc(styleLabel(style)) + '</span>';
+  }
+
+  /* ============================================================
+     Рендер: шапка, фильтры, список
+     ============================================================ */
+
+  function renderHeader() {
+    var slot = $('#accountSlot');
+    if (!slot) return;
+    if (State.user) {
+      slot.innerHTML = '<span class="me" title="Standoff 2 ID ' + esc(State.user.id) + '">' +
+        '<span class="avatar">' + esc(initials(State.user.nick)) + '</span>' +
+        '<span class="me-nick">' + esc(State.user.nick) + '</span></span>' +
+        '<button class="btn btn-sm" type="button" data-act="logout" style="margin-left:8px">Выйти</button>';
+    } else {
+      slot.innerHTML = '<button class="btn btn-sm" type="button" data-act="auth">Войти</button>';
+    }
+  }
+
+  function searchedRooms() {
+    var q = State.query.trim().toLowerCase();
+    var list = Object.keys(State.rooms).map(function (id) { return State.rooms[id]; }).filter(Boolean);
+    if (q) list = list.filter(function (room) { return searchText(room).indexOf(q) >= 0; });
+    return list;
+  }
+
+  function visibleRooms() {
+    var list = searchedRooms();
+    if (State.filter === 'custom') list = list.filter(function (r) { return r.mode === 'custom'; });
+    else if (State.filter === 'mine') list = list.filter(isMine);
+    else if (State.filter !== 'all') list = list.filter(function (r) { return r.mode === State.filter; });
+    if (State.style !== 'all') list = list.filter(function (r) { return r.style === State.style; });
+    list.sort(function (a, b) {
+      var fa = isFull(a) ? 1 : 0;
+      var fb = isFull(b) ? 1 : 0;
+      if (fa !== fb) return fa - fb;
+      return b.createdAt - a.createdAt;
+    });
+    return list;
+  }
+
+  function formatCounts() {
+    var pool = searchedRooms();
+    var counts = { all: pool.length, '1x1': 0, '2x2': 0, '3x3': 0, '4x4': 0, '5x5': 0, custom: 0, mine: 0 };
+    pool.forEach(function (r) {
+      if (Object.prototype.hasOwnProperty.call(counts, r.mode)) counts[r.mode] += 1;
+      else counts.custom += 1;
+      if (isMine(r)) counts.mine += 1;
+    });
+    return counts;
+  }
+
+  function styleCounts() {
+    var pool = searchedRooms();
+    var counts = { all: pool.length, legit: 0, semi: 0, rage: 0 };
+    pool.forEach(function (r) { if (counts[r.style] !== undefined) counts[r.style] += 1; });
+    return counts;
+  }
+
+  function renderFilters() {
+    var c = formatCounts();
+    var s = styleCounts();
+    var f = $('#formatFilters');
+    var st = $('#styleFilters');
+    if (f) {
+      f.innerHTML = FORMAT_FILTERS.map(function (item) {
+        return '<button type="button" class="chip' + (State.filter === item.key ? ' is-active' : '') +
+          '" data-act="filter" data-key="' + item.key + '">' + esc(item.label) +
+          '<span class="chip-count">' + c[item.key] + '</span></button>';
+      }).join('');
+    }
+    if (st) {
+      var parts = ['<span class="filter-label">стиль чита</span>'];
+      STYLE_FILTERS.forEach(function (item) {
+        parts.push('<button type="button" class="chip' + (State.style === item.key ? ' is-active' : '') +
+          '" data-act="style" data-key="' + item.key + '">' + esc(item.label) +
+          '<span class="chip-count">' + s[item.key] + '</span></button>');
+      });
+      st.innerHTML = parts.join('');
+    }
+  }
+
+  function teamMini(tag, list) {
+    var names = list.map(function (p) { return p.nick; }).join(', ');
+    return '<div><span class="team-tag">' + tag + '</span><span class="team-names">' +
+      (names ? esc(names) : '<span class="muted">пусто</span>') + '</span></div>';
+  }
+
+  function cardHTML(room) {
+    var list = playerList(room);
+    var half = teamSize(room);
+    var teams = splitTeams(room);
+    var full = list.length >= room.cap;
+    var mine = !!(State.user && room.players[State.user.id]);
+    var pct = Math.min(100, Math.round((list.length / room.cap) * 100));
+    var meta = [modeLabel(room), room.map, room.region];
+    if (room.ping != null) meta.push(room.ping + ' мс');
+
+    var btnLabel = 'Занять слот';
+    var btnAttrs = '';
+    var btnClass = 'btn btn-sm btn-primary';
+    if (full && !mine) {
+      btnLabel = 'Мест нет';
+      btnAttrs = ' disabled';
+      btnClass = 'btn btn-sm';
+    } else if (mine) {
+      btnLabel = 'В комнате';
+      btnClass = 'btn btn-sm';
+    }
+
+    return '<article class="card" data-room-open="' + esc(room.id) + '">' +
+      '<div class="card-top">' + badgeHTML(room.style) + '<span class="code">' + esc(room.code) + '</span></div>' +
+      '<h3 class="card-title">' + esc(room.name) + '</h3>' +
+      '<div class="card-meta">' + meta.map(function (m) { return '<span>' + esc(m) + '</span>'; }).join('') + '</div>' +
+      '<div class="fill"><span style="width:' + pct + '%"></span></div>' +
+      '<div class="card-count"><span><b>' + list.length + '</b> / ' + room.cap + '</span>' +
+      '<span>' + (full ? 'мест нет' : 'свободно ' + (room.cap - list.length)) + '</span></div>' +
+      '<div class="teams-mini">' + teamMini('A', teams.a) + teamMini('B', teams.b) + '</div>' +
+      '<div class="card-foot"><span class="owner">' + esc(room.ownerNick) + (room.passHash ? ' · пароль' : '') + '</span>' +
+      '<button type="button" class="' + btnClass + '" data-act="open" data-room="' + esc(room.id) + '"' + btnAttrs + '>' + btnLabel + '</button>' +
+      '</div></article>';
+  }
+
+  function renderGrid() {
+    var grid = $('#roomsGrid');
+    if (!grid) return;
+    if (State.loading) {
+      grid.innerHTML = '<div class="state"><p>Загружаю комнаты…</p></div>';
+      return;
+    }
+    if (!Object.keys(State.rooms).length) {
+      grid.innerHTML = '<div class="state"><p>Пока никто не создал комнату. Будь первым.</p>' +
+        '<button class="btn btn-primary" type="button" data-act="create">Создать комнату</button></div>';
+      return;
+    }
+    var list = visibleRooms();
+    if (!list.length) {
+      var message = 'Под эти фильтры комнат нет.';
+      if (State.filter === 'mine' && !State.user) message = 'Войди, чтобы увидеть свои комнаты.';
+      else if (State.filter === 'mine') message = 'Ты пока не создавал комнат и не заходил в чужие.';
+      grid.innerHTML = '<div class="state"><p>' + esc(message) + '</p>' +
+        '<button class="btn" type="button" data-act="reset">Сбросить фильтры</button></div>';
+      return;
+    }
+    grid.innerHTML = list.map(cardHTML).join('');
+  }
+
+  function renderStatus() {
+    var el = $('#dbStatus');
+    if (!el) return;
+    if (DB.mode === 'cloud') el.textContent = 'база: облако · список общий для всех';
+    else if (DB.mode === 'degraded') el.textContent = 'облако недоступно · локальный режим';
+    else el.textContent = 'база: локально (только у тебя)';
+    el.setAttribute('data-mode', DB.mode);
+  }
+
+  function render() {
+    renderHeader();
+    renderFilters();
+    renderGrid();
+    renderStatus();
+  }
+
+  /* ============================================================
+     Тосты
+     ============================================================ */
+
+  function toast(message, kind) {
+    var root = $('#toasts');
+    if (!root) return;
+    var el = document.createElement('div');
+    el.className = 'toast' + (kind ? ' toast--' + kind : '');
+    el.textContent = String(message);
+    root.appendChild(el);
+    while (root.children.length > 3) root.removeChild(root.firstElementChild);
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, 3800);
+  }
+
+  function setError(selector, message) {
+    var el = $(selector);
+    if (!el) return;
+    if (!message) {
+      el.hidden = true;
+      el.textContent = '';
+      return;
+    }
+    el.hidden = false;
+    el.textContent = message;
+  }
+
+  function fieldError(message) {
+    toast(message, 'error');
+  }
+
+  /* ============================================================
+     Тема и сессия
+     ============================================================ */
+
+  function applyTheme(theme) {
+    var value = theme === 'light' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', value);
+    var btn = $('#themeToggle');
+    if (btn) {
+      btn.textContent = value === 'light' ? '☾' : '☀';
+      btn.setAttribute('title', value === 'light' ? 'Тёмная тема' : 'Светлая тема');
+      btn.setAttribute('aria-label', value === 'light' ? 'Включить тёмную тему' : 'Включить светлую тему');
+    }
+  }
+
+  function toggleTheme() {
+    var current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    var next = current === 'light' ? 'dark' : 'light';
+    applyTheme(next);
+    LS.set('theme', next);
+  }
+
+  function loadSession() {
+    var session = LS.get('session', null);
+    if (session && session.id && session.nick) return { id: String(session.id), nick: String(session.nick) };
+    return null;
+  }
+
+  function saveSession() {
+    if (State.user) LS.set('session', { id: State.user.id, nick: State.user.nick });
+    else LS.remove('session');
+  }
+
+  function logout() {
+    State.user = null;
+    State.unlocked = {};
+    saveSession();
+    closeModal();
+    render();
+    toast('Вы вышли из аккаунта');
+  }
+
+  /* ============================================================
+     Проверка Standoff 2 ID
+     ============================================================ */
+
+  async function fetchNick(id) {
+    var endpoint = String(CONFIG.verifyEndpoint || '').trim();
+    if (endpoint) {
+      var url = endpoint.indexOf('{id}') >= 0
+        ? endpoint.replace('{id}', encodeURIComponent(id))
+        : endpoint + (endpoint.indexOf('?') >= 0 ? '&' : '?') + 'id=' + encodeURIComponent(id);
+      var res;
+      try {
+        res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+      } catch (e) {
+        throw AppError('Проверка ника недоступна');
+      }
+      if (res.status === 404) throw AppError('ID не найден в Standoff 2');
+      if (!res.ok) throw AppError('Проверка ника недоступна (HTTP ' + res.status + ')');
+      var data = null;
+      try { data = await res.json(); } catch (e) { throw AppError('Проверка вернула некорректный ответ'); }
+      var nick = data && data.nick != null ? String(data.nick).trim() : '';
+      if (!nick) throw AppError('Проверка вернула пустой ник');
+      return nick.slice(0, 24);
+    }
+    await delay(Math.max(0, Number(CONFIG.demoVerifyDelay) || 0));
+    return demoNick(id);
+  }
+
+  /* ============================================================
+     Аккаунт: модальное окно
+     ============================================================ */
+
+  function renderAuthModal() {
+    openModal('auth', null, authHTML());
+  }
+
+  function authHTML() {
+    var tabs = '<div class="tabs">' +
+      '<button type="button" class="tab' + (Auth.tab === 'login' ? ' is-active' : '') + '" data-act="auth-tab" data-tab="login">Вход</button>' +
+      '<button type="button" class="tab' + (Auth.tab === 'register' ? ' is-active' : '') + '" data-act="auth-tab" data-tab="register">Регистрация</button>' +
+      '</div>';
+    return modalHead('Аккаунт', 'Вход по Standoff 2 ID') + tabs + (Auth.tab === 'register' ? registerHTML() : loginHTML());
+  }
+
+  function loginHTML() {
+    return '<form id="loginForm" class="form" novalidate>' +
+      '<label class="field"><span>Standoff 2 ID</span>' +
+      '<input id="lId" inputmode="numeric" autocomplete="username" maxlength="12" placeholder="7–12 цифр"></label>' +
+      '<label class="field"><span>Пароль</span>' +
+      '<input id="lPass" type="password" autocomplete="current-password" maxlength="64" placeholder="пароль"></label>' +
+      '<p class="form-error" id="lErr" hidden></p>' +
+      '<div class="dialog-foot"><button type="button" class="btn" data-act="close-modal">Отмена</button>' +
+      '<button type="submit" class="btn btn-primary">Войти</button></div>' +
+      '</form>';
+  }
+
+  function registerHTML() {
+    if (!Auth.regId || !Auth.regNick) {
+      return '<form id="verifyForm" class="form" novalidate>' +
+        '<label class="field"><span>Standoff 2 ID</span>' +
+        '<input id="rId" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="7–12 цифр"></label>' +
+        '<p class="form-error" id="rErr" hidden></p>' +
+        '<p class="hint">Ник подтягивается из Standoff 2 — вручную его ввести нельзя.</p>' +
+        '<div class="dialog-foot"><button type="button" class="btn" data-act="close-modal">Отмена</button>' +
+        '<button type="submit" class="btn btn-primary" id="rVerifyBtn">Проверить</button></div>' +
+        '</form>';
+    }
+    return '<div class="verified">' +
+      '<span class="avatar avatar--lg">' + esc(initials(Auth.regNick)) + '</span>' +
+      '<span class="verified-text"><b>' + esc(Auth.regNick) + '</b>' +
+      '<span class="muted">найден в Standoff 2 · ID ' + esc(Auth.regId) + '</span></span>' +
+      '</div>' +
+      '<form id="regForm" class="form" novalidate>' +
+      '<label class="field"><span>Пароль</span>' +
+      '<input id="rgPass" type="password" autocomplete="new-password" maxlength="64" placeholder="минимум 6 символов"></label>' +
+      '<label class="field"><span>Повтори пароль</span>' +
+      '<input id="rgPass2" type="password" autocomplete="new-password" maxlength="64" placeholder="ещё раз"></label>' +
+      '<p class="form-error" id="rgErr" hidden></p>' +
+      '<div class="dialog-foot"><button type="button" class="btn" data-act="reg-reset">Другой ID</button>' +
+      '<button type="submit" class="btn btn-primary">Создать аккаунт</button></div>' +
+      '</form>';
+  }
+
+  function openAuth(tab) {
+    Auth.tab = tab || 'login';
+    Auth.regId = '';
+    Auth.regNick = '';
+    renderAuthModal();
+  }
+
+  async function doVerify() {
+    var input = $('#rId');
+    if (!input) return;
+    var id = input.value.trim();
+    if (!isDigits(id, 7, 12)) {
+      setError('#rErr', 'Standoff 2 ID — 7–12 цифр');
+      fieldError('Standoff 2 ID — 7–12 цифр');
+      input.focus();
+      return;
+    }
+    setError('#rErr', '');
+    var btn = $('#rVerifyBtn');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Проверяю…';
+    }
+    try {
+      var existing = await getUser(id);
+      if (existing) throw AppError('Этот ID уже зарегистрирован');
+      var nick = await fetchNick(id);
+      Auth.regId = id;
+      Auth.regNick = nick;
+      renderAuthModal();
+      toast('ID найден в Standoff 2', 'ok');
+    } catch (err) {
+      var back = $('#rVerifyBtn');
+      if (back) {
+        back.disabled = false;
+        back.textContent = 'Проверить';
+      }
+      var message = messageOf(err);
+      setError('#rErr', message);
+      fieldError(message);
+    }
+  }
+
+  async function doRegister() {
+    if (!Auth.regId || !Auth.regNick) {
+      fieldError('Сначала проверь ID');
+      return;
+    }
+    var passEl = $('#rgPass');
+    var pass2El = $('#rgPass2');
+    var pass = passEl ? passEl.value : '';
+    var pass2 = pass2El ? pass2El.value : '';
+    if (pass.length < 6) {
+      setError('#rgErr', 'Пароль — минимум 6 символов');
+      fieldError('Пароль — минимум 6 символов');
+      if (passEl) passEl.focus();
+      return;
+    }
+    if (pass !== pass2) {
+      setError('#rgErr', 'Пароли не совпадают');
+      fieldError('Пароли не совпадают');
+      if (pass2El) pass2El.focus();
+      return;
+    }
+    setError('#rgErr', '');
+    var user = {
+      id: Auth.regId,
+      nick: Auth.regNick,
+      pass: passHash(pass, Auth.regId),
+      createdAt: Date.now()
+    };
+    await createUser(user);
+    State.user = { id: user.id, nick: user.nick };
+    State.unlocked = {};
+    saveSession();
+    var next = pending;
+    pending = null;
+    closeModal();
+    render();
+    toast('Аккаунт создан · вы вошли как ' + user.nick, 'ok');
+    runPending(next);
+  }
+
+  async function doLogin() {
+    var idEl = $('#lId');
+    var passEl = $('#lPass');
+    if (!idEl || !passEl) return;
+    var id = idEl.value.trim();
+    var pass = passEl.value;
+    if (!isDigits(id, 7, 12)) {
+      setError('#lErr', 'Standoff 2 ID — 7–12 цифр');
+      fieldError('Standoff 2 ID — 7–12 цифр');
+      idEl.focus();
+      return;
+    }
+    if (!pass) {
+      setError('#lErr', 'Введите пароль');
+      fieldError('Введите пароль');
+      passEl.focus();
+      return;
+    }
+    setError('#lErr', '');
+    var user = await getUser(id);
+    if (!user) {
+      setError('#lErr', 'Аккаунт не найден');
+      fieldError('Аккаунт не найден');
+      return;
+    }
+    if (String(user.pass) !== passHash(pass, id)) {
+      setError('#lErr', 'Неверный пароль');
+      fieldError('Неверный пароль');
+      passEl.focus();
+      return;
+    }
+    State.user = { id: String(user.id || id), nick: String(user.nick || 'Игрок') };
+    State.unlocked = {};
+    saveSession();
+    var next = pending;
+    pending = null;
+    closeModal();
+    render();
+    toast('Вы вошли как ' + State.user.nick, 'ok');
+    runPending(next);
+  }
+
+  function requireLogin(next) {
+    if (State.user) return true;
+    pending = next || null;
+    openAuth('login');
+    return false;
+  }
+
+  function runPending(next) {
+    if (!next) return;
+    if (next.type === 'create') run(startCreate);
+    else if (next.type === 'open-room') run(function () { return openRoom(next.roomId); });
+  }
+
+  /* ============================================================
+     Комнаты: карточка -> окно
+     ============================================================ */
+
+  async function openRoom(id) {
+    var room = State.rooms[id];
+    if (!room) {
+      toast('Комната не найдена', 'error');
+      return;
+    }
+    var me = State.user;
+    var member = me && room.players[me.id];
+    var owner = me && room.ownerId === me.id;
+    if (room.passHash && !member && !owner && State.unlocked[id] !== room.passHash) {
+      openPassModal(room);
+      return;
+    }
+    Modal.armed = null;
+    openModal('room', id, roomModalHTML(room), { wide: true });
+  }
+
+  function renderRoomModal(opts) {
+    var room = Modal.key ? State.rooms[Modal.key] : null;
+    if (!room) {
+      closeModal();
+      return;
+    }
+    openModal('room', room.id, roomModalHTML(room), {
+      wide: true,
+      keepScroll: opts && opts.keepScroll,
+      keepFocus: opts && opts.keepFocus
+    });
+  }
+
+  function syncOpenModal() {
+    if (Modal.kind === 'room') {
+      if (!State.rooms[Modal.key]) {
+        closeModal();
+        toast('Комната удалена', 'error');
+        return;
+      }
+      renderRoomModal({ keepScroll: true, keepFocus: true });
+    } else if (Modal.kind === 'pass' && !State.rooms[Modal.key]) {
+      closeModal();
+    }
+  }
+
+  function metaRow(term, value) {
+    return '<dt>' + esc(term) + '</dt><dd>' + esc(value) + '</dd>';
+  }
+
+  function metaValueRow(term, htmlValue) {
+    return '<dt>' + esc(term) + '</dt><dd>' + htmlValue + '</dd>';
+  }
+
+  function slotHTML(player, index) {
+    if (!player) {
+      return '<li class="slot"><span class="avatar avatar--sm avatar--empty">–</span>' +
+        '<span class="slot-nick muted">Свободно</span>' +
+        '<span class="slot-idx">' + (index + 1) + '</span></li>';
+    }
+    return '<li class="slot"><span class="avatar avatar--sm">' + esc(initials(player.nick)) + '</span>' +
+      '<span class="slot-nick">' + esc(player.nick) + '</span>' +
+      (player.ready ? '<span class="ready-tag">готов</span>' : '') +
+      '<span class="slot-idx">' + (index + 1) + '</span></li>';
+  }
+
+  function teamHTML(room, teamPlayers, label) {
+    var size = teamSize(room);
+    var rows = [];
+    for (var i = 0; i < size; i += 1) rows.push(slotHTML(teamPlayers[i], i));
+    return '<div class="team"><h3 class="team-title"><span>Команда ' + label + '</span>' +
+      '<span>' + teamPlayers.length + ' / ' + size + '</span></h3>' +
+      '<ul class="slots">' + rows.join('') + '</ul></div>';
+  }
+
+  function roomModalHTML(room) {
+    var me = State.user;
+    var list = playerList(room);
+    var teams = splitTeams(room);
+    var mine = me ? room.players[me.id] : null;
+    var owner = !!(me && room.ownerId === me.id);
+    var full = list.length >= room.cap;
+    var pct = Math.min(100, Math.round((list.length / room.cap) * 100));
+
+    var subtitle = badgeHTML(room.style) + '<span class="code">' + esc(room.code) + '</span>' +
+      (room.passHash ? '<span class="muted">пароль</span>' : '');
+    var head = modalHead(room.name, subtitle);
+
+    var codeRow = '<div class="code-row"><span class="code">' + esc(room.code) + '</span>' +
+      '<button type="button" class="btn btn-sm" data-act="copy" data-code="' + esc(room.code) + '">Скопировать</button></div>';
+
+    var meta = '<dl class="meta">' +
+      metaRow('Формат', modeLabel(room)) +
+      metaRow('Стиль чита', styleLabel(room.style)) +
+      metaRow('Карта', room.map) +
+      metaRow('Регион', room.region) +
+      (room.ping != null ? metaRow('Пинг', room.ping + ' мс') : '') +
+      metaRow('Владелец', room.ownerNick) +
+      metaRow('Создана', formatWhen(room.createdAt)) +
+      '</dl>';
+
+    var fill = '<div class="fill-row"><div class="fill"><span style="width:' + pct + '%"></span></div>' +
+      '<div class="card-count"><span><b>' + list.length + '</b> / ' + room.cap + '</span>' +
+      '<span>' + (full ? 'мест нет' : 'свободно ' + (room.cap - list.length)) + '</span></div></div>';
+
+    var teamsHTML = '<div class="teams">' + teamHTML(room, teams.a, 'A') + teamHTML(room, teams.b, 'B') + '</div>';
+
+    var actions = [];
+    var hint = '';
+    if (!me) {
+      hint = 'Войди, чтобы занять слот.';
+      actions.push('<button type="button" class="btn btn-primary" data-act="auth" data-room="' + esc(room.id) + '">Войти</button>');
+    } else if (owner) {
+      actions.push('<button type="button" class="btn' + (mine && mine.ready ? ' btn-primary' : '') + '" data-act="ready" data-room="' + esc(room.id) + '">' +
+        (mine && mine.ready ? 'Готов' : 'Готово') + '</button>');
+      actions.push('<button type="button" class="btn" data-act="edit" data-room="' + esc(room.id) + '">Редактировать</button>');
+      actions.push('<button type="button" class="btn btn-danger" data-act="delete" data-room="' + esc(room.id) + '">' +
+        (Modal.armed === room.id ? 'Точно удалить?' : 'Удалить комнату') + '</button>');
+    } else if (mine) {
+      actions.push('<button type="button" class="btn' + (mine.ready ? ' btn-primary' : '') + '" data-act="ready" data-room="' + esc(room.id) + '">' +
+        (mine.ready ? 'Готов' : 'Готово') + '</button>');
+      actions.push('<button type="button" class="btn" data-act="leave" data-room="' + esc(room.id) + '">Выйти</button>');
+    } else if (full) {
+      hint = 'Свободных слотов нет.';
+      actions.push('<button type="button" class="btn" disabled>Мест нет</button>');
+    } else {
+      actions.push('<button type="button" class="btn btn-primary" data-act="join" data-room="' + esc(room.id) + '">Занять слот</button>');
+    }
+
+    return head + codeRow + meta + fill + teamsHTML +
+      '<div class="dialog-foot">' + (hint ? '<span class="hint" style="margin-right:auto">' + esc(hint) + '</span>' : '') + actions.join('') + '</div>';
+  }
+
+  /* ============================================================
+     Комнаты: пароль, действия
+     ============================================================ */
+
+  function openPassModal(room) {
+    openModal('pass', room.id,
+      modalHead('Закрытая комната', esc(room.name) + ' · <span class="code">' + esc(room.code) + '</span>') +
+      '<form id="passForm" class="form" novalidate>' +
+      '<label class="field"><span>Пароль комнаты</span>' +
+      '<input id="pPass" type="password" autocomplete="off" maxlength="64" placeholder="пароль комнаты"></label>' +
+      '<p class="form-error" id="pErr" hidden></p>' +
+      '<div class="dialog-foot"><button type="button" class="btn" data-act="close-modal">Отмена</button>' +
+      '<button type="submit" class="btn btn-primary">Войти</button></div>' +
+      '</form>');
+  }
+
+  function submitPassForm() {
+    var room = Modal.key ? State.rooms[Modal.key] : null;
+    if (!room) {
+      closeModal();
+      return;
+    }
+    var input = $('#pPass');
+    var value = input ? input.value : '';
+    if (!room.passHash) {
+      State.unlocked[room.id] = '';
+      closeModal();
+      return openRoom(room.id);
+    }
+    if (passHash(value, room.code) !== room.passHash) {
+      setError('#pErr', 'Неверный пароль');
+      fieldError('Неверный пароль');
+      if (input) input.focus();
+      return;
+    }
+    State.unlocked[room.id] = room.passHash;
+    closeModal();
+    return openRoom(room.id);
+  }
+
+  async function joinRoom(id) {
+    if (State.loading) {
+      toast('Подожди, загружаю комнаты…');
+      return;
+    }
+    var room = State.rooms[id];
+    if (!room) {
+      toast('Комната не найдена', 'error');
+      return;
+    }
+    if (!requireLogin({ type: 'open-room', roomId: id })) return;
+    if (room.ownerId === State.user.id || room.players[State.user.id]) {
+      toast('Ты уже в этой комнате');
+      return;
+    }
+    if (room.passHash && State.unlocked[id] !== room.passHash) {
+      openPassModal(room);
+      return;
+    }
+    if (isFull(room)) {
+      toast('Мест нет', 'error');
+      return;
+    }
+    var players = Object.assign({}, room.players);
+    players[State.user.id] = { id: State.user.id, nick: State.user.nick, at: Date.now(), ready: false };
+    await patchRoom(id, { players: players });
+    State.rooms[id] = normalizeRoom(id, Object.assign({}, room, { players: players }));
+    render();
+    syncOpenModal();
+    toast('Слот занят', 'ok');
+  }
+
+  async function leaveRoom(id) {
+    var room = State.rooms[id];
+    if (!room || !State.user) return;
+    if (room.ownerId === State.user.id) {
+      toast('Владелец не может выйти — только удалить комнату', 'error');
+      return;
+    }
+    if (!room.players[State.user.id]) {
+      toast('Ты не в этой комнате', 'error');
+      return;
+    }
+    var players = Object.assign({}, room.players);
+    delete players[State.user.id];
+    await patchRoom(id, { players: players });
+    State.rooms[id] = normalizeRoom(id, Object.assign({}, room, { players: players }));
+    render();
+    syncOpenModal();
+    toast('Вы вышли из комнаты');
+  }
+
+  async function toggleReady(id) {
+    var room = State.rooms[id];
+    if (!room || !State.user) return;
+    var me = room.players[State.user.id];
+    if (!me) {
+      toast('Сначала займи слот', 'error');
+      return;
+    }
+    var players = Object.assign({}, room.players);
+    players[State.user.id] = Object.assign({}, me, { ready: !me.ready });
+    await patchRoom(id, { players: players });
+    State.rooms[id] = normalizeRoom(id, Object.assign({}, room, { players: players }));
+    render();
+    syncOpenModal();
+  }
+
+  async function deleteRoomFlow(id) {
+    var room = State.rooms[id];
+    if (!room || !State.user) return;
+    if (room.ownerId !== State.user.id) {
+      toast('Только владелец может удалить комнату', 'error');
+      return;
+    }
+    if (Modal.armed !== id) {
+      Modal.armed = id;
+      clearTimeout(Modal.timer);
+      Modal.timer = setTimeout(function () {
+        Modal.armed = null;
+        if (Modal.kind === 'room' && Modal.key === id) renderRoomModal({ keepScroll: true, keepFocus: true });
+      }, 6000);
+      renderRoomModal({ keepScroll: true });
+      toast('Нажми «Точно удалить?», чтобы удалить комнату');
+      return;
+    }
+    clearTimeout(Modal.timer);
+    Modal.armed = null;
+    await deleteRoomData(id);
+    delete State.rooms[id];
+    closeModal();
+    render();
+    toast('Комната удалена', 'ok');
+  }
+
+  async function copyCode(code) {
+    if (!code) return;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(code);
+        toast('Код скопирован', 'ok');
+        return;
+      }
+    } catch (e) {
+      /* переходим к запасному способу */
+    }
+    try {
+      var area = document.createElement('textarea');
+      area.value = code;
+      area.setAttribute('readonly', 'readonly');
+      area.style.position = 'fixed';
+      area.style.left = '-9999px';
+      document.body.appendChild(area);
+      area.select();
+      var ok = document.execCommand && document.execCommand('copy');
+      document.body.removeChild(area);
+      if (ok) {
+        toast('Код скопирован', 'ok');
+        return;
+      }
+    } catch (e) {
+      /* ниже покажем ошибку */
+    }
+    toast('Не удалось скопировать — выдели код вручную', 'error');
+  }
+
+  /* ============================================================
+     Комнаты: создание и правка
+     ============================================================ */
+
+  function selectOptions(values, selected, labeler) {
+    return values.map(function (value) {
+      return '<option value="' + esc(value) + '"' + (String(value) === String(selected) ? ' selected' : '') + '>' +
+        esc(labeler ? labeler(value) : value) + '</option>';
+    }).join('');
+  }
+
+  function slotLabel(value) {
+    var n = Number(value);
+    var side = n / 2;
+    return n + ' слотов · ' + side + 'x' + side;
+  }
+
+  function startCreate() {
+    if (State.loading) {
+      toast('Подожди, загружаю комнаты…');
+      return;
+    }
+    if (!requireLogin({ type: 'create' })) return;
+    openRoomForm(null);
+  }
+
+  function openRoomForm(room) {
+    var isEdit = !!room;
+    var mode = room ? room.mode : '3x3';
+    var modeValue = MODE_CAP[mode] ? mode : 'custom';
+    var slotsValue = room && CUSTOM_SLOTS.indexOf(room.cap) >= 0 ? room.cap : 6;
+    var style = room ? room.style : 'rage';
+    var map = room ? room.map : 'Любая';
+    var region = room ? room.region : 'EU';
+
+    var head = modalHead(isEdit ? 'Редактировать комнату' : 'Новая комната',
+      isEdit ? '<span class="code">' + esc(room.code) + '</span>' : 'Комната видна всем, кто открыл сайт');
+
+    var form = '<form id="roomForm" class="form" novalidate' + (isEdit ? ' data-room-id="' + esc(room.id) + '"' : '') + '>' +
+      '<label class="field"><span>Название</span>' +
+      '<input id="fName" maxlength="42" autocomplete="off" placeholder="до 42 символов" value="' + esc(room ? room.name : '') + '"></label>' +
+      '<div class="row">' +
+      '<label class="field"><span>Формат</span><select id="fMode">' +
+      selectOptions(['1x1', '2x2', '3x3', '4x4', '5x5', 'custom'], modeValue, function (value) {
+        return value === 'custom' ? 'Свой размер' : value + ' · ' + MODE_CAP[value] + ' слота';
+      }) + '</select></label>' +
+      '<label class="field" id="slotsWrap"' + (modeValue === 'custom' ? '' : ' hidden') + '><span>Слотов</span><select id="fSlots">' +
+      selectOptions(CUSTOM_SLOTS, slotsValue, slotLabel) + '</select></label>' +
+      '</div>' +
+      '<div class="row">' +
+      '<label class="field"><span>Стиль чита (обязательно)</span><select id="fStyle" required>' +
+      selectOptions(['legit', 'semi', 'rage'], style, function (value) { return STYLE_LABEL[value]; }) + '</select></label>' +
+      '<label class="field"><span>Карта</span><select id="fMap">' +
+      selectOptions(MAPS, map) + '</select></label>' +
+      '</div>' +
+      '<div class="row">' +
+      '<label class="field"><span>Регион</span><select id="fRegion">' +
+      selectOptions(REGIONS, region) + '</select></label>' +
+      '<label class="field"><span>Пинг, мс (необязательно)</span>' +
+      '<input id="fPing" type="number" min="0" max="300" step="1" placeholder="—" value="' + esc(room && room.ping != null ? room.ping : '') + '"></label>' +
+      '</div>' +
+      '<label class="field"><span>Пароль комнаты (необязательно)</span>' +
+      '<input id="fPass" type="text" autocomplete="off" maxlength="32" placeholder="' +
+      (isEdit ? 'оставь пустым, чтобы не менять' : 'без пароля — комната открыта') + '"></label>' +
+      (isEdit && room.passHash ? '<label class="field field-check"><input id="fDropPass" type="checkbox" style="width:auto"> <span>Убрать пароль комнаты</span></label>' : '') +
+      '<p class="form-error" id="fErr" hidden></p>' +
+      '<div class="dialog-foot"><button type="button" class="btn" data-act="close-modal">Отмена</button>' +
+      '<button type="submit" class="btn btn-primary">' + (isEdit ? 'Сохранить' : 'Создать комнату') + '</button></div>' +
+      '</form>';
+
+    openModal('room-form', room ? room.id : null, head + form);
+  }
+
+  function toggleSlotsField() {
+    var mode = $('#fMode');
+    var wrap = $('#slotsWrap');
+    if (!mode || !wrap) return;
+    wrap.hidden = mode.value !== 'custom';
+  }
+
+  function makeCode() {
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    for (var attempt = 0; attempt < 30; attempt += 1) {
+      var code = 'MX-';
+      for (var i = 0; i < 4; i += 1) code += chars.charAt(Math.floor(Math.random() * chars.length));
+      var taken = Object.keys(State.rooms).some(function (id) { return State.rooms[id].code === code; });
+      if (!taken) return code;
+    }
+    return 'MX-' + Date.now().toString(36).slice(-4).toUpperCase();
+  }
+
+  async function submitRoomForm(form) {
+    if (State.loading) {
+      toast('Подожди, загружаю комнаты…');
+      return;
+    }
+    var editId = form.getAttribute('data-room-id') || '';
+    var existing = editId ? State.rooms[editId] : null;
+    if (editId && !existing) {
+      toast('Комната не найдена', 'error');
+      closeModal();
+      return;
+    }
+    if (!State.user) {
+      toast('Сначала войди', 'error');
+      return;
+    }
+    if (existing && existing.ownerId !== State.user.id) {
+      toast('Только владелец может редактировать комнату', 'error');
+      return;
+    }
+
+    var nameEl = $('#fName');
+    var name = nameEl ? nameEl.value.trim() : '';
+    if (!name) {
+      setError('#fErr', 'Введите название комнаты');
+      fieldError('Введите название комнаты');
+      if (nameEl) nameEl.focus();
+      return;
+    }
+    if (name.length > 42) {
+      setError('#fErr', 'Название — до 42 символов');
+      fieldError('Название — до 42 символов');
+      return;
+    }
+
+    var modeEl = $('#fMode');
+    var mode = modeEl ? modeEl.value : '3x3';
+    var cap;
+    if (mode === 'custom') {
+      var slotsEl = $('#fSlots');
+      cap = Number(slotsEl ? slotsEl.value : 6);
+      if (CUSTOM_SLOTS.indexOf(cap) < 0) cap = 6;
+    } else {
+      cap = MODE_CAP[mode] || 6;
+    }
+
+    if (existing) {
+      var count = playerList(existing).length;
+      if (count > cap) {
+        var message = 'В комнате уже ' + count + ' игроков — выбери размер не меньше';
+        setError('#fErr', message);
+        fieldError(message);
+        return;
+      }
+    }
+
+    var styleEl = $('#fStyle');
+    var style = styleEl ? styleEl.value : '';
+    if (!STYLE_LABEL[style]) {
+      setError('#fErr', 'Выбери стиль чита');
+      fieldError('Выбери стиль чита');
+      return;
+    }
+
+    var mapEl = $('#fMap');
+    var map = mapEl && MAPS.indexOf(mapEl.value) >= 0 ? mapEl.value : 'Любая';
+    var regionEl = $('#fRegion');
+    var region = regionEl && REGIONS.indexOf(regionEl.value) >= 0 ? regionEl.value : 'EU';
+
+    var pingEl = $('#fPing');
+    var pingRaw = pingEl ? pingEl.value.trim() : '';
+    var ping = null;
+    if (pingRaw) {
+      var pingNum = Number(pingRaw);
+      if (!isFinite(pingNum) || pingNum < 0 || pingNum > 300) {
+        setError('#fErr', 'Пинг — число от 0 до 300');
+        fieldError('Пинг — число от 0 до 300');
+        return;
+      }
+      ping = Math.round(pingNum);
+    }
+
+    var passEl = $('#fPass');
+    var pass = passEl ? passEl.value : '';
+    var dropEl = $('#fDropPass');
+    var dropPass = !!(dropEl && dropEl.checked);
+
+    setError('#fErr', '');
+
+    if (existing) {
+      var passHashValue = existing.passHash;
+      if (pass) passHashValue = passHash(pass, existing.code);
+      else if (dropPass) passHashValue = '';
+      var patch = {
+        name: name,
+        mode: mode,
+        cap: cap,
+        map: map,
+        region: region,
+        ping: ping,
+        style: style,
+        passHash: passHashValue
+      };
+      await patchRoom(existing.id, patch);
+      State.rooms[existing.id] = normalizeRoom(existing.id, Object.assign({}, existing, patch));
+      State.unlocked[existing.id] = passHashValue;
+      render();
+      toast('Изменения сохранены', 'ok');
+      openRoom(existing.id);
+      return;
+    }
+
+    var code = makeCode();
+    var createdAt = Date.now();
+    var room = {
+      id: 'r' + createdAt.toString(36) + Math.random().toString(36).slice(2, 7),
+      name: name,
+      mode: mode,
+      cap: cap,
+      map: map,
+      region: region,
+      ping: ping,
+      style: style,
+      passHash: pass ? passHash(pass, code) : '',
+      ownerId: State.user.id,
+      ownerNick: State.user.nick,
+      code: code,
+      createdAt: createdAt,
+      players: {}
+    };
+    room.players[State.user.id] = { id: State.user.id, nick: State.user.nick, at: createdAt, ready: false };
+
+    await putRoom(room);
+    State.rooms[room.id] = room;
+    State.unlocked[room.id] = room.passHash;
+    render();
+    toast('Комната создана', 'ok');
+    openRoom(room.id);
+  }
+
+  /* ============================================================
+     Обработчики событий
+     ============================================================ */
+
+  function handleAct(el) {
+    var act = el.getAttribute('data-act');
+    var roomId = el.getAttribute('data-room') || '';
+    switch (act) {
+      case 'theme':
+        toggleTheme();
+        break;
+      case 'auth':
+        requireLogin(roomId ? { type: 'open-room', roomId: roomId } : null);
+        break;
+      case 'logout':
+        logout();
+        break;
+      case 'create':
+        startCreate();
+        break;
+      case 'close-modal':
+        closeModal();
+        break;
+      case 'filter':
+        State.filter = el.getAttribute('data-key') || 'all';
+        renderFilters();
+        renderGrid();
+        break;
+      case 'style':
+        State.style = el.getAttribute('data-key') || 'all';
+        renderFilters();
+        renderGrid();
+        break;
+      case 'reset':
+        State.filter = 'all';
+        State.style = 'all';
+        State.query = '';
+        var search = $('#searchInput');
+        if (search) search.value = '';
+        renderFilters();
+        renderGrid();
+        break;
+      case 'auth-tab':
+        Auth.tab = el.getAttribute('data-tab') === 'register' ? 'register' : 'login';
+        renderAuthModal();
+        break;
+      case 'reg-reset':
+        Auth.regId = '';
+        Auth.regNick = '';
+        renderAuthModal();
+        break;
+      case 'open':
+        run(function () { return openRoom(roomId); });
+        break;
+      case 'join':
+        run(function () { return joinRoom(roomId); });
+        break;
+      case 'leave':
+        run(function () { return leaveRoom(roomId); });
+        break;
+      case 'ready':
+        run(function () { return toggleReady(roomId); });
+        break;
+      case 'edit':
+        if (State.rooms[roomId]) openRoomForm(State.rooms[roomId]);
+        break;
+      case 'delete':
+        run(function () { return deleteRoomFlow(roomId); });
+        break;
+      case 'copy':
+        run(function () { return copyCode(el.getAttribute('data-code') || ''); });
+        break;
+      default:
+        break;
+    }
+  }
+
+  function boot() {
+    State.user = loadSession();
+    applyTheme(LS.get('theme', 'dark') === 'light' ? 'light' : 'dark');
+    renderHeader();
+    renderFilters();
+    renderGrid();
+
+    document.addEventListener('click', function (event) {
+      var target = event.target;
+      if (!target || target.nodeType !== 1) return;
+      var actEl = target.closest('[data-act]');
+      if (actEl) {
+        handleAct(actEl);
+        return;
+      }
+      var card = target.closest('[data-room-open]');
+      if (card) {
+        run(function () { return openRoom(card.getAttribute('data-room-open')); });
+      }
+    });
+
+    document.addEventListener('submit', function (event) {
+      var form = event.target;
+      if (!form || !form.id) return;
+      if (form.id === 'loginForm') {
+        event.preventDefault();
+        run(doLogin);
+      } else if (form.id === 'verifyForm') {
+        event.preventDefault();
+        run(doVerify);
+      } else if (form.id === 'regForm') {
+        event.preventDefault();
+        run(doRegister);
+      } else if (form.id === 'roomForm') {
+        event.preventDefault();
+        run(function () { return submitRoomForm(form); });
+      } else if (form.id === 'passForm') {
+        event.preventDefault();
+        run(submitPassForm);
+      }
+    });
+
+    document.addEventListener('change', function (event) {
+      var target = event.target;
+      if (target && target.id === 'fMode') toggleSlotsField();
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key !== 'Escape') return;
+      if (!$('#modal') || $('#modal').hidden) return;
+      event.preventDefault();
+      closeModal();
+    });
+
+    var overlay = $('#modal');
+    if (overlay) {
+      overlay.addEventListener('click', function (event) {
+        if (event.target === overlay) closeModal();
+      });
+    }
+
+    var searchInput = $('#searchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', function () {
+        State.query = searchInput.value;
+        renderFilters();
+        renderGrid();
+      });
+    }
+
+    window.addEventListener('storage', function () {
+      if (cloud()) return;
+      State.rooms = normalizeRooms(localRooms());
+      render();
+    });
+
+    window.addEventListener('unhandledrejection', function (event) {
+      event.preventDefault();
+      toast('Не удалось выполнить действие', 'error');
+    });
+
+    initStore().catch(function () {
+      DB.mode = DB.mode === 'cloud' ? 'cloud' : 'local';
+      State.loading = false;
+      render();
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
+</body>
+</html>
