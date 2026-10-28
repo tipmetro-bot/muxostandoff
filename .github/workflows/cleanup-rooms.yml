@@ -1,0 +1,91 @@
+name: Чистка мусорных комнат
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Убрать мусор из Firebase
+        env:
+          BASE: https://muxostandoff-default-rtdb.firebaseio.com
+          STALE_HOURS: '3'
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.parse
+          import urllib.request
+
+          base = os.environ['BASE'].rstrip('/')
+          stale_hours = float(os.environ.get('STALE_HOURS', '3'))
+
+          def call(method, path):
+              req = urllib.request.Request(base + path, method=method)
+              with urllib.request.urlopen(req, timeout=30) as res:
+                  body = res.read().decode('utf-8')
+              return json.loads(body) if body else None
+
+          def junk_reason(room, now):
+              if not isinstance(room, dict):
+                  return 'повреждена'
+              owner = str(room.get('ownerId') or '')
+              if not (owner.isdigit() and 7 <= len(owner) <= 12):
+                  return 'нет Standoff 2 ID'
+              players = room.get('players') or {}
+              if not isinstance(players, dict) or not players:
+                  return 'нет игроков'
+              name = str(room.get('name') or '').strip()
+              if not name or name == 'Без названия':
+                  return 'без названия'
+              created = float(room.get('createdAt') or 0)
+              age_hours = (now - created) / 3600000 if created else 0
+              if created and age_hours > stale_hours and len(players) <= 1:
+                  return 'брошена больше %g ч' % stale_hours
+              return ''
+
+          rooms = call('GET', '/rooms.json') or {}
+          now = time.time() * 1000
+
+          lines = ['| Комната | Код | Хост | Игроки | Создана (UTC) | Решение |',
+                   '| --- | --- | --- | --- | --- | --- |']
+          deleted = 0
+          kept = 0
+
+          for room_id in sorted(rooms):
+              raw = rooms.get(room_id)
+              room = raw if isinstance(raw, dict) else {}
+              reason = junk_reason(raw, now)
+              created = float(room.get('createdAt') or 0)
+              when = time.strftime('%Y-%m-%d %H:%M', time.gmtime(created / 1000)) if created else '—'
+              name = str(room.get('name') or '—')[:40]
+              code = str(room.get('code') or '—')
+              host = str(room.get('ownerNick') or '—')
+              players = room.get('players') or {}
+              count = len(players) if isinstance(players, dict) else 0
+              if reason:
+                  call('DELETE', '/rooms/%s.json' % urllib.parse.quote(room_id, safe=''))
+                  deleted += 1
+                  decision = 'удалена · ' + reason
+              else:
+                  kept += 1
+                  decision = 'оставлена'
+              lines.append('| %s | %s | %s | %d | %s | %s |' % (name, code, host, count, when, decision))
+
+          report = '\n'.join(lines)
+          print(report)
+          print('')
+          print('Удалено: %d, оставлено: %d' % (deleted, kept))
+
+          summary = os.environ.get('GITHUB_STEP_SUMMARY')
+          if summary:
+              with open(summary, 'a', encoding='utf-8') as fh:
+                  fh.write('## Чистка комнат\n\nУдалено: **%d**, оставлено: **%d**\n\n%s\n' % (deleted, kept, report))
+          PY
