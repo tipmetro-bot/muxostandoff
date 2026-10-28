@@ -898,7 +898,8 @@
 const CONFIG = {
   databaseURL: "https://muxostandoff-default-rtdb.firebaseio.com",      // https://xxx-default-rtdb.europe-west1.firebasedatabase.app
   verifyEndpoint: "",   // проверка ника: вернуть {"nick":"Ник"} или 404
-  demoVerifyDelay: 700
+  demoVerifyDelay: 700,
+  staleRoomHours: 3     // брошенные комнаты с одним игроком старше N часов убираются
 };
 
 (function () {
@@ -1069,7 +1070,9 @@ const CONFIG = {
     query: '',
     unlocked: {},
     lastChat: {},
-    awarded: {}
+    awarded: {},
+    junkCleaned: {},
+    junkReported: 0
   };
 
   var DB = { mode: 'local', base: '', es: null };
@@ -1571,6 +1574,50 @@ const CONFIG = {
   }
 
   function isFull(room) { return playerList(room).length >= room.cap; }
+
+  function validOwnerId(id) {
+    return /^\d{7,12}$/.test(String(id || ''));
+  }
+
+  /* Мусор — то, что интерфейс создать не может: пустой Standoff 2 ID, комната без игроков,
+     безымянная комната и брошенные комнаты, где больше N часов сидит один хозяин. */
+  function junkReason(room) {
+    if (!room) return 'broken';
+    if (State.user && room.players && room.players[State.user.id]) return '';
+    if (!validOwnerId(room.ownerId)) return 'owner';
+    if (!playerList(room).length) return 'empty';
+    if (!room.name || room.name === 'Без названия') return 'name';
+    var hours = Number(CONFIG.staleRoomHours) || 0;
+    if (hours > 0 && room.createdAt > 0) {
+      var age = (Date.now() - room.createdAt) / 3600000;
+      if (age > hours && playerList(room).length <= 1) return 'stale';
+    }
+    return '';
+  }
+
+  function sweepJunkRooms() {
+    var removed = 0;
+    Object.keys(State.rooms).forEach(function (id) {
+      var room = State.rooms[id];
+      if (!room) return;
+      if (!junkReason(room)) return;
+      removed += 1;
+      if (State.junkCleaned[id]) return;
+      State.junkCleaned[id] = true;
+      run(function () {
+        return deleteRoomData(id).then(function () {
+          delete State.rooms[id];
+        });
+      });
+    });
+    if (removed && !State.junkReported) {
+      State.junkReported = removed;
+      if (cloud()) {
+        toast('Убрано мусорных комнат: ' + removed + '. Список чистый', 'ok');
+      }
+    }
+    return removed;
+  }
   function isMine(room) { return !!(State.user && (room.ownerId === State.user.id || room.players[State.user.id])); }
 
   function modeLabel(room) { return room.mode === 'custom' ? 'свой · ' + room.cap : room.mode; }
@@ -1744,7 +1791,9 @@ const CONFIG = {
 
   function searchedRooms() {
     var q = State.query.trim().toLowerCase();
-    var list = Object.keys(State.rooms).map(function (id) { return State.rooms[id]; }).filter(Boolean);
+    var list = Object.keys(State.rooms)
+      .map(function (id) { return State.rooms[id]; })
+      .filter(function (room) { return room && !junkReason(room); });
     if (q) list = list.filter(function (room) { return searchText(room).indexOf(q) >= 0; });
     return list;
   }
@@ -1904,6 +1953,7 @@ const CONFIG = {
   }
 
   function render() {
+    sweepJunkRooms();
     checkSettlements();
     checkAwards();
     renderHeader();
