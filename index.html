@@ -649,6 +649,9 @@
   .file-meta { color: var(--muted); font-size: 11px; }
   .file-row .btn { flex: none; }
   .file-hashes { margin-top: 12px; }
+  .file-note { margin-top: 10px; }
+  .file-meta a { color: var(--accent); text-decoration: none; }
+  .file-meta a:hover { text-decoration: underline; }
   .file-hashes summary { color: var(--muted); font-size: 11px; cursor: pointer; }
   .file-hashes ul { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
   .file-hashes li { display: grid; gap: 2px; }
@@ -750,7 +753,8 @@
       <div class="board-head">
         <div>
           <h2 class="section-title">Читы</h2>
-          <p class="hint">Файлы лежат в репозитории и в релизе. Качаешь на свой страх и риск.</p>
+          <p class="hint">Обновлено под патч Standoff 2: Exodium 5 и Neptunium f1.3 — в релизе.
+            Качаешь на свой страх и риск.</p>
         </div>
       </div>
       <div class="cheat-note">
@@ -769,10 +773,18 @@
           <ul class="file-list">
             <li class="file-row">
               <div class="file-main">
-                <span class="file-name">Exodium(4).exe</span>
-                <span class="file-meta">18,3 МБ · сам чит</span>
+                <span class="file-name">Exodium.5.exe</span>
+                <span class="file-meta">32,5 МБ · новая версия под патч Standoff 2, из
+                  <a href="https://github.com/tipmetro-bot/muxostandoff/releases/tag/DSASSAD" target="_blank" rel="noopener noreferrer">релиза</a></span>
               </div>
-              <a class="btn btn-sm btn-primary" href="Exodium(4).exe" download>Скачать</a>
+              <a class="btn btn-sm btn-primary" href="https://github.com/tipmetro-bot/muxostandoff/releases/download/DSASSAD/Exodium.5.exe">Скачать</a>
+            </li>
+            <li class="file-row">
+              <div class="file-main">
+                <span class="file-name">Exodium(4).exe</span>
+                <span class="file-meta">18,3 МБ · предыдущая версия, лежит в репозитории</span>
+              </div>
+              <a class="btn btn-sm" href="Exodium(4).exe" download>Скачать</a>
             </li>
             <li class="file-row">
               <div class="file-main">
@@ -785,6 +797,8 @@
           <details class="file-hashes">
             <summary>SHA-256 файлов</summary>
             <ul>
+              <li><b>Exodium.5.exe</b>
+                <code>67b73b8adc985ea75632ed5e91005610139df0c4a057acaf2b110d807bd0272c</code></li>
               <li><b>Exodium(4).exe</b>
                 <code>414e77447248b32aa20f7d398a0eca465f146b7caf3bd16183fef60a02999783</code></li>
               <li><b>BlueStacksInstaller_5_22_130_1019_native_e0175934c4a0a56f1db683585ffd1bcf(1).exe</b>
@@ -833,15 +847,15 @@
             <span class="badge badge--game">официальный · бесплатный</span>
           </div>
           <p class="hint">Официальный чит, бесплатный. Но за бесплатную версию банят: играй на аккаунте,
-            который не жалко. Файлы лежат в
-            <a href="https://github.com/tipmetro-bot/muxostandoff/releases/tag/fgd" target="_blank" rel="noopener noreferrer">релизе</a>.</p>
+            который не жалко. Сборка f1.3 лежит в
+            <a href="https://github.com/tipmetro-bot/muxostandoff/releases/tag/DSASSAD" target="_blank" rel="noopener noreferrer">релизе</a>.</p>
           <ul class="file-list">
             <li class="file-row">
               <div class="file-main">
-                <span class="file-name">neptunium.pc.loader.1.4-f1.1.zip</span>
-                <span class="file-meta">10,1 МБ · загрузчик чита (архив)</span>
+                <span class="file-name">neptunium.pc.loader.1.4-f1.3.zip</span>
+                <span class="file-meta">10,1 МБ · загрузчик под патч Standoff 2 (архив)</span>
               </div>
-              <a class="btn btn-sm btn-primary" href="https://github.com/tipmetro-bot/muxostandoff/releases/download/fgd/neptunium.pc.loader.1.4-f1.1.zip">Скачать</a>
+              <a class="btn btn-sm btn-primary" href="https://github.com/tipmetro-bot/muxostandoff/releases/download/DSASSAD/neptunium.pc.loader.1.4-f1.3.zip">Скачать</a>
             </li>
             <li class="file-row">
               <div class="file-main">
@@ -854,12 +868,14 @@
           <details class="file-hashes">
             <summary>SHA-256 файлов</summary>
             <ul>
-              <li><b>neptunium.pc.loader.1.4-f1.1.zip</b>
+              <li><b>neptunium.pc.loader.1.4-f1.3.zip</b>
                 <code>57b4da4361d59de88c0199538d742cfa1450f1491dff4a6bccee9e161ebf77a1</code></li>
               <li><b>BlueStacksInstaller_5_22_130_1019_native_28cb0e6619cbfb3470f9070f66e209a0.2.exe</b>
                 <code>801895b346e936c1a7958135c285bab8d337e2d908e7d7b2fca4e3c39a786ed7</code></li>
             </ul>
           </details>
+          <p class="hint file-note">f1.3 побайтно совпадает с прошлой сборкой f1.1 — хеш тот же, изменилось
+            только имя файла. Значит, сам загрузчик не пересобирали.</p>
         </article>
       </div>
       <p class="hint cheats-note">Файлы загружены как есть и антивирусом не проверялись: читы и кряки

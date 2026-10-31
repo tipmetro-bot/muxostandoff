@@ -28,14 +28,16 @@ check('Exodium, ZeninLoader, Neptunium', titles.join('/') === 'Exodium/ZeninLoad
 check('ключ в @exodiumdlc_bot', !!$('.cheat a[href="https://t.me/exodiumdlc_bot"]'), '');
 check('пометка про кряк', /кряк/.test(cheats.textContent), '');
 check('Neptunium: официальный и бесплатный', /официальный · бесплатный/.test(cheats.textContent) && /банят/.test(cheats.textContent), '');
-check('Neptunium: ссылка на релиз', !!$('.cheat a[href$="/releases/tag/fgd"]'), '');
+check('Neptunium: ссылка на релиз', !!$('.cheat a[href$="/releases/tag/DSASSAD"]'), '');
 check('ADB-инструкция', /ADB/.test(cheats.textContent) && /Android Debug Bridge/.test(cheats.textContent), '');
 check('предупреждение о рисках', /антивирусом не проверялись/.test(cheats.textContent), '');
 
 const releaseLinks = $$('.cheat a[href*="releases/download"]').map((a) => a.getAttribute('href'));
-check('файлы релиза на месте', releaseLinks.length === 2 &&
-  releaseLinks.some((h) => /neptunium\.pc\.loader\.1\.4-f1\.1\.zip$/.test(h)) &&
+check('файлы релиза на месте', releaseLinks.length === 3 &&
+  releaseLinks.some((h) => /DSASSAD\/Exodium\.5\.exe$/.test(h)) &&
+  releaseLinks.some((h) => /DSASSAD\/neptunium\.pc\.loader\.1\.4-f1\.3\.zip$/.test(h)) &&
   releaseLinks.some((h) => /28cb0e6619cbfb3470f9070f66e209a0\.2\.exe$/.test(h)), releaseLinks.length + ' ссылок');
+check('обновление под патч отражено', /Обновлено под патч Standoff 2/.test($('#cheats').textContent), '');
 
 const localLinks = $$('.cheat a[download]').map((a) => a.getAttribute('href'));
 check('четыре локальных файла', localLinks.length === 4, localLinks.join(' | '));
@@ -58,8 +60,10 @@ Object.keys(expected).forEach((name) => {
 check('локальные файлы и SHA-256', filesOk, '');
 
 const hashesOnPage = $$('.file-hashes code').map((c) => c.textContent.trim());
-check('хеши на странице полные', hashesOnPage.length === 6 && hashesOnPage.every((h) => /^[0-9a-f]{64}$/.test(h)), hashesOnPage.length + ' шт.');
-check('хеш Neptunium совпадает с релизом', hashesOnPage.indexOf('57b4da4361d59de88c0199538d742cfa1450f1491dff4a6bccee9e161ebf77a1') >= 0, '');
+check('хеши на странице полные', hashesOnPage.length === 7 && hashesOnPage.every((h) => /^[0-9a-f]{64}$/.test(h)), hashesOnPage.length + ' шт.');
+check('хеш Neptunium f1.3 совпадает с релизом', hashesOnPage.indexOf('57b4da4361d59de88c0199538d742cfa1450f1491dff4a6bccee9e161ebf77a1') >= 0, '');
+check('хеш Exodium 5 совпадает с релизом', hashesOnPage.indexOf('67b73b8adc985ea75632ed5e91005610139df0c4a057acaf2b110d807bd0272c') >= 0, '');
+check('честная пометка про f1.3 = f1.1', /побайтно совпадает/.test($('#cheats').textContent), '');
 check('ссылка «Читы» в шапке', $('.header-actions a').getAttribute('href') === '#cheats', '');
 
 /* ---------- базовые сценарии ---------- */
