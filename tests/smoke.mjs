@@ -64,7 +64,7 @@ check('хеши на странице полные', hashesOnPage.length === 7 &
 check('хеш Neptunium f1.3 совпадает с релизом', hashesOnPage.indexOf('57b4da4361d59de88c0199538d742cfa1450f1491dff4a6bccee9e161ebf77a1') >= 0, '');
 check('хеш Exodium 5 совпадает с релизом', hashesOnPage.indexOf('67b73b8adc985ea75632ed5e91005610139df0c4a057acaf2b110d807bd0272c') >= 0, '');
 check('честная пометка про f1.3 = f1.1', /побайтно совпадает/.test($('#cheats').textContent), '');
-check('ссылка «Читы» в шапке', $('.header-actions a').getAttribute('href') === '#cheats', '');
+check('вкладка «Читы» в шапке', !!$('#tabbar [data-act="tab"][data-tab="cheats"]'), '');
 
 /* ---------- базовые сценарии ---------- */
 check('пустой список', /Пока никто не создал комнату/.test($('.state') ? $('.state').textContent : ''), '');

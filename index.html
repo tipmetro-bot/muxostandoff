@@ -21,6 +21,7 @@
     --accent: #ff4d2f;
     --accent-hover: #ff6347;
     --accent-soft: rgba(255, 77, 47, .12);
+    --bg-line: rgba(255, 255, 255, .045);
     --radius: 6px;
     --wrap: 1120px;
     --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -39,6 +40,7 @@
     --accent: #d93a1c;
     --accent-hover: #c03317;
     --accent-soft: rgba(217, 58, 28, .1);
+    --bg-line: rgba(0, 0, 0, .05);
     color-scheme: light;
   }
 
@@ -74,7 +76,7 @@
   .site-header {
     position: sticky;
     top: 0;
-    z-index: 20;
+    z-index: 30;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
@@ -199,6 +201,22 @@
   .intro-text { margin-top: 12px; max-width: 660px; color: var(--muted); }
   .intro-text strong { color: var(--text); font-weight: 600; }
   .intro-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .intro-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin-top: 16px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .intro-stats b { color: var(--text); font-weight: 600; }
+  .intro-stats span { white-space: nowrap; }
+  .intro-stats span + span::before {
+    content: "/";
+    margin-right: 14px;
+    color: var(--border-strong);
+  }
 
   /* ---------- board ---------- */
   .board { padding: 22px 0 0; }
@@ -239,7 +257,7 @@
   }
 
   .chip:hover { border-color: var(--border-strong); }
-  .chip.is-active { border-color: var(--accent); color: var(--accent); }
+  .chip.is-active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
   .chip-count { color: var(--muted); font-family: var(--mono); font-size: 11px; }
   .chip.is-active .chip-count { color: var(--accent); }
 
@@ -281,7 +299,10 @@
     transition: border-color .12s;
   }
 
-  .card:hover { border-color: var(--border-strong); }
+  .card { transition: border-color .12s, transform .12s; }
+  .card:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+  .card:active { transform: none; }
+  .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   .card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .card-title { font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
@@ -341,12 +362,15 @@
     flex-direction: column;
     align-items: center;
     gap: 14px;
-    padding: 40px 20px;
+    padding: 44px 20px;
     border: 1px dashed var(--border);
     border-radius: var(--radius);
+    background: var(--panel);
     color: var(--muted);
     text-align: center;
   }
+  .state p { max-width: 420px; }
+  .state b { color: var(--text); font-weight: 600; }
 
   .state p { max-width: 440px; }
 
@@ -659,6 +683,155 @@
   .file-hashes code { font-family: var(--mono); font-size: 10px; color: var(--muted); overflow-wrap: anywhere; }
   .cheats-note { margin-top: 12px; }
 
+  /* ---------- фон ---------- */
+  .bg-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .bg-canvas[hidden] { display: none; }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    opacity: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(to right, var(--bg-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--bg-line) 1px, transparent 1px);
+    background-size: 48px 48px;
+    transition: opacity .18s ease;
+  }
+  html[data-bg="grid"] body::before { opacity: 1; }
+  html[data-bg="grid"][data-bg-density="low"] body::before { background-size: 72px 72px; }
+  html[data-bg="grid"][data-bg-density="high"] body::before { background-size: 32px 32px; }
+
+  main, .site-footer { position: relative; z-index: 1; }
+
+  /* ---------- вкладки ---------- */
+  .tabbar {
+    display: flex;
+    align-items: stretch;
+    gap: 20px;
+    overflow-x: auto;
+    border-top: 1px solid var(--border);
+    scrollbar-width: none;
+  }
+  .tabbar::-webkit-scrollbar { display: none; }
+
+  .tabbar-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0 11px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color .12s;
+  }
+  .tabbar-btn:hover { color: var(--text); }
+  .tabbar-btn::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    background: transparent;
+  }
+  .tabbar-btn.is-active { color: var(--text); }
+  .tabbar-btn.is-active::after { background: var(--accent); }
+
+  .tabbar-count {
+    min-width: 20px;
+    padding: 0 6px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 16px;
+    text-align: center;
+  }
+  .tabbar-btn.is-active .tabbar-count { border-color: var(--border-strong); color: var(--text); }
+
+  .brand-mark {
+    flex: none;
+    align-self: center;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+
+  /* ---------- внешний вид ---------- */
+  .view-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .view-option {
+    display: grid;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--panel);
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .12s;
+  }
+  .view-option:hover { border-color: var(--border-strong); }
+  .view-option.is-active { border-color: var(--accent); }
+  .view-label { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .view-label b { font-weight: 600; }
+  .view-option.is-active .view-label b { color: var(--accent); }
+  .view-preview {
+    position: relative;
+    height: 62px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    overflow: hidden;
+  }
+  .view-preview--grid {
+    background-image:
+      linear-gradient(to right, var(--bg-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--bg-line) 1px, transparent 1px);
+    background-size: 14px 14px;
+  }
+  .view-preview--stars {
+    background-image:
+      radial-gradient(circle at 16% 26%, var(--muted) 1px, transparent 1.5px),
+      radial-gradient(circle at 38% 64%, var(--muted) 1px, transparent 1.5px),
+      radial-gradient(circle at 62% 22%, var(--text) 1.2px, transparent 1.6px),
+      radial-gradient(circle at 78% 58%, var(--muted) 1px, transparent 1.5px),
+      radial-gradient(circle at 24% 84%, var(--muted) 1px, transparent 1.5px),
+      radial-gradient(circle at 88% 18%, var(--muted) 1px, transparent 1.5px),
+      radial-gradient(circle at 52% 88%, var(--text) 1px, transparent 1.5px);
+  }
+  .view-preview--network svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .view-preview--network circle { fill: var(--muted); }
+  .view-preview--network circle.hot { fill: var(--accent); }
+  .view-preview--network line { stroke: var(--border-strong); stroke-width: 1; }
+
+  .view-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 14px; }
+  .view-row .filter-label { min-width: 84px; }
+  .view-motion { margin-top: 14px; }
+  .view-note { margin-top: 12px; }
+
   /* ---------- toasts ---------- */
   .toasts {
     position: fixed;
@@ -712,6 +885,8 @@
     .toasts { left: 12px; right: 12px; bottom: 12px; width: auto; }
     .chat-list { max-height: 150px; }
     .cheat-grid { grid-template-columns: 1fr; }
+    .tabbar { gap: 16px; }
+    .view-grid { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 640px) {
@@ -721,18 +896,36 @@
 
   @media (max-width: 520px) {
     .header-link { display: none; }
+    .brand { font-size: 15px; gap: 7px; }
+    .header-actions { gap: 6px; }
+    #viewBtn { padding: 6px 9px; }
+    .me-nick { max-width: 72px; }
+    .tabbar { gap: 14px; }
+    .tabbar-btn { font-size: 12px; padding: 9px 0 10px; }
     .room-overlay:not(.is-pip) { left: 10px; right: 10px; bottom: 10px; width: auto; }
   }
 </style>
 </head>
 <body>
+  <canvas class="bg-canvas" id="bgCanvas" aria-hidden="true" hidden></canvas>
   <header class="site-header">
     <div class="wrap header-inner">
-      <a class="brand" href="#top">muxostandoff <span class="brand-sub">ХВХ · Standoff 2</span></a>
+      <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>muxostandoff
+        <span class="brand-sub">ХВХ · Standoff 2</span></a>
       <div class="header-actions">
-        <a class="btn btn-sm header-link" href="#cheats">Читы</a>
+        <button class="btn btn-sm" type="button" id="viewBtn" data-act="open-view" title="Фон и оформление сайта">Вид</button>
         <button class="icon-btn" type="button" id="themeToggle" data-act="theme" title="Светлая тема" aria-label="Переключить тему">☀</button>
         <div id="accountSlot"></div>
+      </div>
+    </div>
+    <div class="wrap">
+      <div class="tabbar" id="tabbar" role="tablist" aria-label="Разделы сайта">
+        <button class="tabbar-btn is-active" type="button" role="tab" id="tabRooms"
+          aria-selected="true" aria-controls="pane-rooms" data-act="tab" data-tab="rooms">
+          Комнаты <span class="tabbar-count" id="tabCountRooms">0</span>
+        </button>
+        <button class="tabbar-btn" type="button" role="tab" id="tabCheats"
+          aria-selected="false" aria-controls="cheats" data-act="tab" data-tab="cheats">Читы</button>
       </div>
     </div>
   </header>
@@ -744,12 +937,26 @@
       <p class="intro-text">Сайт только для ХВХ: здесь читер играет против читера. <strong>Чистым игрокам тут делать нечего</strong> — комнаты, пароли и состав только для своих.</p>
       <div class="intro-actions">
         <button class="btn btn-primary" type="button" data-act="create">Создать комнату</button>
-        <a class="btn" href="#cheats">Читы и файлы</a>
+        <button class="btn" type="button" data-act="tab" data-tab="cheats">Читы и файлы</button>
+        <button class="btn" type="button" data-act="open-view">Фон сайта</button>
       </div>
+      <div class="intro-stats" id="introStats"></div>
     </section>
 
 
-    <section class="wrap board" id="cheats">
+    <section class="wrap board" id="pane-rooms" data-pane="rooms" role="tabpanel" aria-labelledby="tabRooms">
+      <div class="board-head">
+        <div class="filters" id="formatFilters"></div>
+        <div class="search">
+          <input type="search" id="searchInput" placeholder="Поиск: название, карта, ник" aria-label="Поиск по комнатам" autocomplete="off">
+        </div>
+      </div>
+      <div class="style-filters" id="styleFilters"></div>
+      <div class="grid" id="roomsGrid"></div>
+    </section>
+
+    <section class="wrap board" id="cheats" data-pane="cheats" role="tabpanel"
+      aria-labelledby="tabCheats" hidden>
       <div class="board-head">
         <div>
           <h2 class="section-title">Читы</h2>
@@ -882,16 +1089,6 @@
         часто ловят детект. Скачивай только если понимаешь, что делаешь, и сверяй SHA-256 после загрузки.</p>
     </section>
 
-    <section class="wrap board">
-      <div class="board-head">
-        <div class="filters" id="formatFilters"></div>
-        <div class="search">
-          <input type="search" id="searchInput" placeholder="Поиск: название, карта, ник" aria-label="Поиск по комнатам" autocomplete="off">
-        </div>
-      </div>
-      <div class="style-filters" id="styleFilters"></div>
-      <div class="grid" id="roomsGrid"></div>
-    </section>
   </main>
 
   <footer class="site-footer">
@@ -1868,6 +2065,7 @@ const CONFIG = {
       });
       st.innerHTML = parts.join('');
     }
+    renderTabsMeta();
   }
 
   function teamMini(tag, list) {
@@ -2019,19 +2217,20 @@ const CONFIG = {
   function applyTheme(theme) {
     var value = theme === 'light' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', value);
+    LS.set('theme', value);
     var btn = $('#themeToggle');
     if (btn) {
       btn.textContent = value === 'light' ? '☾' : '☀';
       btn.setAttribute('title', value === 'light' ? 'Тёмная тема' : 'Светлая тема');
       btn.setAttribute('aria-label', value === 'light' ? 'Включить тёмную тему' : 'Включить светлую тему');
     }
+    if (typeof applyBackground === 'function') applyBackground();
   }
 
   function toggleTheme() {
     var current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
     var next = current === 'light' ? 'dark' : 'light';
     applyTheme(next);
-    LS.set('theme', next);
   }
 
   function loadSession() {
@@ -3115,6 +3314,7 @@ const CONFIG = {
   }
 
   function startCreate() {
+    setTab('rooms', { keepScroll: true });
     if (State.loading) {
       toast('Подожди, загружаю комнаты…');
       return;
@@ -3954,6 +4154,438 @@ const CONFIG = {
   }
 
   /* ============================================================
+     Вкладки, фон и оформление
+     ============================================================ */
+
+  var UI_KEY = 'ui';
+  var BG_MODES = { none: 'Без фона', grid: 'Сетка', stars: 'Звёзды', network: 'Точки и линии' };
+  var BG_DENSITY = { low: 'Мало', mid: 'Средне', high: 'Много' };
+
+  var UI = { bg: 'grid', density: 'mid', motion: true };
+
+  function systemReducedMotion() {
+    return typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function normalizeUI(raw) {
+    var out = { bg: 'grid', density: 'mid', motion: !systemReducedMotion() };
+    if (!raw || typeof raw !== 'object') return out;
+    if (Object.prototype.hasOwnProperty.call(BG_MODES, raw.bg)) out.bg = raw.bg;
+    if (Object.prototype.hasOwnProperty.call(BG_DENSITY, raw.density)) out.density = raw.density;
+    if (typeof raw.motion === 'boolean') out.motion = raw.motion;
+    return out;
+  }
+
+  function loadUI() {
+    UI = normalizeUI(LS.get(UI_KEY, null));
+  }
+
+  function saveUI() {
+    LS.set(UI_KEY, { bg: UI.bg, density: UI.density, motion: UI.motion });
+  }
+
+  var BG = {
+    canvas: null,
+    ctx: null,
+    mode: '',
+    w: 0,
+    h: 0,
+    dpr: 1,
+    items: [],
+    raf: 0,
+    last: 0,
+    active: false
+  };
+
+  function bgColors() {
+    var light = document.documentElement.getAttribute('data-theme') === 'light';
+    return {
+      dot: light ? '20, 20, 22' : '236, 236, 238',
+      line: light ? '20, 20, 22' : '236, 236, 238',
+      accent: light ? '217, 58, 28' : '255, 77, 47'
+    };
+  }
+
+  function bgCount() {
+    var area = Math.max(1, BG.w * BG.h);
+    var factor = UI.density === 'low' ? 0.55 : (UI.density === 'high' ? 1.7 : 1);
+    var base = Math.max(24, Math.min(150, Math.round(area / 18000)));
+    return Math.max(12, Math.round(base * factor));
+  }
+
+  function bgSeed() {
+    BG.items = [];
+    var count;
+    var i;
+    if (UI.bg === 'stars') {
+      count = bgCount();
+      for (i = 0; i < count; i += 1) {
+        BG.items.push({
+          x: Math.random() * BG.w,
+          y: Math.random() * BG.h,
+          r: 0.5 + Math.random() * 1.1,
+          a: 0.22 + Math.random() * 0.55,
+          phase: Math.random() * Math.PI * 2,
+          speed: 0.4 + Math.random() * 1.5,
+          hot: Math.random() < 0.06
+        });
+      }
+      return;
+    }
+    if (UI.bg === 'network') {
+      count = Math.max(10, Math.round(bgCount() * 0.62));
+      for (i = 0; i < count; i += 1) {
+        BG.items.push({
+          x: Math.random() * BG.w,
+          y: Math.random() * BG.h,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: (Math.random() - 0.5) * 0.5,
+          r: 1 + Math.random() * 1.2,
+          hot: Math.random() < 0.1
+        });
+      }
+    }
+  }
+
+  function bgDrawStars(still) {
+    var ctx = BG.ctx;
+    var colors = bgColors();
+    var time = Date.now() / 1000;
+    ctx.clearRect(0, 0, BG.w, BG.h);
+    for (var i = 0; i < BG.items.length; i += 1) {
+      var star = BG.items[i];
+      var alpha = still ? star.a : star.a * (0.6 + 0.4 * Math.sin(time * star.speed + star.phase));
+      if (alpha <= 0.02) continue;
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(' + (star.hot ? colors.accent : colors.dot) + ',' + alpha.toFixed(3) + ')';
+      ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function bgDrawNetwork(step) {
+    var ctx = BG.ctx;
+    var colors = bgColors();
+    var nodes = BG.items;
+    var link = 128;
+    var i;
+    var j;
+
+    if (step) {
+      for (i = 0; i < nodes.length; i += 1) {
+        var node = nodes[i];
+        node.x += node.vx * step;
+        node.y += node.vy * step;
+        if (node.x < -24) node.x = BG.w + 24;
+        else if (node.x > BG.w + 24) node.x = -24;
+        if (node.y < -24) node.y = BG.h + 24;
+        else if (node.y > BG.h + 24) node.y = -24;
+      }
+    }
+
+    ctx.clearRect(0, 0, BG.w, BG.h);
+    ctx.lineWidth = 1;
+    for (i = 0; i < nodes.length; i += 1) {
+      for (j = i + 1; j < nodes.length; j += 1) {
+        var dx = nodes[i].x - nodes[j].x;
+        var dy = nodes[i].y - nodes[j].y;
+        var dist2 = dx * dx + dy * dy;
+        if (dist2 > link * link) continue;
+        var alpha = (1 - Math.sqrt(dist2) / link) * 0.2;
+        if (alpha < 0.012) continue;
+        ctx.strokeStyle = 'rgba(' + colors.line + ',' + alpha.toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x, nodes[i].y);
+        ctx.lineTo(nodes[j].x, nodes[j].y);
+        ctx.stroke();
+      }
+    }
+    for (i = 0; i < nodes.length; i += 1) {
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(' + (nodes[i].hot ? colors.accent : colors.dot) + ',' +
+        (nodes[i].hot ? '0.7' : '0.45') + ')';
+      ctx.arc(nodes[i].x, nodes[i].y, nodes[i].r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function bgPaint(step) {
+    if (!BG.ctx) return;
+    if (UI.bg === 'stars') bgDrawStars(!step);
+    else if (UI.bg === 'network') bgDrawNetwork(step || 0);
+  }
+
+  function bgFrame() {
+    if (!BG.active) return;
+    BG.raf = window.requestAnimationFrame(bgFrame);
+    if (document.hidden) return;
+    var now = Date.now();
+    if (BG.last && now - BG.last < 33) return;
+    var step = BG.last ? Math.min((now - BG.last) / 16.667, 3) : 1;
+    BG.last = now;
+    bgPaint(step);
+  }
+
+  function bgStart() {
+    if (BG.raf || typeof window.requestAnimationFrame !== 'function') return;
+    BG.active = true;
+    BG.last = 0;
+    BG.raf = window.requestAnimationFrame(bgFrame);
+  }
+
+  function bgStop() {
+    BG.active = false;
+    if (BG.raf) {
+      try { window.cancelAnimationFrame(BG.raf); } catch (e) { /* ignore */ }
+      BG.raf = 0;
+    }
+  }
+
+  function bgResize() {
+    if (!BG.canvas || !BG.ctx || BG.canvas.hidden) return;
+    var w = Math.max(1, window.innerWidth || 1);
+    var h = Math.max(1, window.innerHeight || 1);
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (BG.w === w && BG.h === h && BG.dpr === dpr && BG.items.length) {
+      bgPaint(0);
+      return;
+    }
+    BG.w = w;
+    BG.h = h;
+    BG.dpr = dpr;
+    BG.canvas.width = Math.round(w * dpr);
+    BG.canvas.height = Math.round(h * dpr);
+    if (BG.ctx.setTransform) BG.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    bgSeed();
+    bgPaint(0);
+  }
+
+  function applyBackground() {
+    var canvas = $('#bgCanvas');
+    var html = document.documentElement;
+    html.setAttribute('data-bg', UI.bg);
+    html.setAttribute('data-bg-density', UI.density);
+    if (!canvas) return;
+
+    var animated = UI.bg === 'stars' || UI.bg === 'network';
+    bgStop();
+    if (!animated) {
+      canvas.hidden = true;
+      if (BG.ctx) {
+        try { BG.ctx.clearRect(0, 0, BG.w, BG.h); } catch (e) { /* ignore */ }
+      }
+      BG.items = [];
+      return;
+    }
+
+    canvas.hidden = false;
+    if (!BG.canvas) BG.canvas = canvas;
+    if (!BG.ctx) {
+      try { BG.ctx = canvas.getContext ? canvas.getContext('2d') : null; } catch (e) { BG.ctx = null; }
+    }
+    if (!BG.ctx) {
+      canvas.hidden = true;
+      return;
+    }
+    if (BG.mode !== UI.bg) {
+      BG.mode = UI.bg;
+      BG.w = 0;
+    }
+    bgResize();
+    if (UI.motion) bgStart();
+    else bgPaint(0);
+  }
+
+  /* ---------- вкладки ---------- */
+
+  var Tabs = { current: 'rooms' };
+
+  function normalizeTab(name) {
+    return name === 'cheats' ? 'cheats' : 'rooms';
+  }
+
+  function tabFromHash() {
+    var hash = String(window.location.hash || '').replace(/^#/, '');
+    if (hash === 'cheats' || hash === 'rooms') return hash;
+    return '';
+  }
+
+  function setTab(name, opts) {
+    var value = normalizeTab(name);
+    var rooms = $('#pane-rooms');
+    var cheats = $('#cheats');
+    Tabs.current = value;
+    if (rooms) rooms.hidden = value !== 'rooms';
+    if (cheats) cheats.hidden = value !== 'cheats';
+    $$('[data-act="tab"]').forEach(function (btn) {
+      var active = btn.getAttribute('data-tab') === value;
+      btn.classList.toggle('is-active', active);
+      if (btn.getAttribute('role') === 'tab') {
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      }
+    });
+    document.documentElement.setAttribute('data-tab', value);
+    if (!(opts && opts.silent)) {
+      try {
+        if (window.location.hash !== '#' + value) {
+          window.history.replaceState(null, '', '#' + value);
+        }
+      } catch (e) { /* file:// и старые браузеры */ }
+    }
+    if (!(opts && opts.keepScroll) && (window.scrollY || 0) > 120) {
+      try { window.scrollTo(0, 0); } catch (e) { /* ignore */ }
+    }
+  }
+
+  /* ---------- окно «Вид» ---------- */
+
+  function networkPreviewHTML() {
+    return '<div class="view-preview view-preview--network">' +
+      '<svg viewBox="0 0 120 62" preserveAspectRatio="none" aria-hidden="true">' +
+      '<line x1="18" y1="16" x2="52" y2="33"></line>' +
+      '<line x1="52" y1="33" x2="90" y2="19"></line>' +
+      '<line x1="52" y1="33" x2="74" y2="52"></line>' +
+      '<line x1="18" y1="16" x2="32" y2="50"></line>' +
+      '<line x1="90" y1="19" x2="74" y2="52"></line>' +
+      '<circle cx="18" cy="16" r="2"></circle>' +
+      '<circle class="hot" cx="52" cy="33" r="2.4"></circle>' +
+      '<circle cx="90" cy="19" r="1.8"></circle>' +
+      '<circle cx="74" cy="52" r="1.8"></circle>' +
+      '<circle cx="32" cy="50" r="1.8"></circle>' +
+      '</svg></div>';
+  }
+
+  function viewPreviewHTML(mode) {
+    if (mode === 'grid') return '<div class="view-preview view-preview--grid"></div>';
+    if (mode === 'stars') return '<div class="view-preview view-preview--stars"></div>';
+    if (mode === 'network') return networkPreviewHTML();
+    return '<div class="view-preview"></div>';
+  }
+
+  function viewModalHTML() {
+    var theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    var themes = '<div class="view-row"><span class="filter-label">тема</span>' +
+      '<button type="button" class="chip' + (theme === 'dark' ? ' is-active' : '') +
+      '" data-act="set-theme" data-theme="dark">Тёмная</button>' +
+      '<button type="button" class="chip' + (theme === 'light' ? ' is-active' : '') +
+      '" data-act="set-theme" data-theme="light">Светлая</button></div>';
+
+    var options = ['grid', 'stars', 'network', 'none'].map(function (mode) {
+      var active = UI.bg === mode;
+      return '<button type="button" class="view-option' + (active ? ' is-active' : '') +
+        '" data-act="bg" data-bg="' + mode + '" aria-pressed="' + (active ? 'true' : 'false') + '">' +
+        viewPreviewHTML(mode) +
+        '<span class="view-label"><b>' + esc(BG_MODES[mode]) + '</b>' +
+        (active ? '<span class="muted small">выбрано</span>' : '') + '</span></button>';
+    }).join('');
+
+    var density = ['low', 'mid', 'high'].map(function (key) {
+      return '<button type="button" class="chip' + (UI.density === key ? ' is-active' : '') +
+        '" data-act="density" data-density="' + key + '">' + esc(BG_DENSITY[key]) + '</button>';
+    }).join('');
+
+    var animated = UI.bg === 'stars' || UI.bg === 'network';
+
+    return modalHead('Вид сайта', 'Фон и анимация · хранится в этом браузере') +
+      '<div class="form">' +
+      themes +
+      '<div class="view-grid">' + options + '</div>' +
+      '<div class="view-row"><span class="filter-label">плотность</span>' + density + '</div>' +
+      '<label class="field-check view-motion"><input id="viewMotion" type="checkbox"' +
+      (UI.motion ? ' checked' : '') + (animated ? '' : ' disabled') + '> <span>Анимация фона</span></label>' +
+      '<p class="hint view-note">' + (animated
+        ? 'Фон рисуется на canvas под контентом и не перехватывает клики. Плотность влияет на число точек.'
+        : 'У сетки и пустого фона анимации нет — включи «Звёзды» или «Точки и линии».') +
+      '</p>' +
+      '<div class="dialog-foot"><button type="button" class="btn" data-act="view-reset">Сбросить</button>' +
+      '<button type="button" class="btn btn-primary" data-act="close-modal">Готово</button></div>' +
+      '</div>';
+  }
+
+  function renderViewModal(focusMode) {
+    if (Modal.kind !== 'view') return;
+    openModal('view', null, viewModalHTML(), { keepScroll: true, keepFocus: true });
+    if (focusMode) {
+      var target = $('#modal .view-option[data-bg="' + UI.bg + '"]');
+      if (target && target.focus) {
+        try { target.focus(); } catch (e) { /* ignore */ }
+      }
+    }
+  }
+
+  function openViewModal() {
+    openModal('view', null, viewModalHTML());
+    var active = $('#modal .view-option.is-active');
+    if (active && active.focus) {
+      try { active.focus(); } catch (e) { /* ignore */ }
+    }
+  }
+
+  function setBackground(mode) {
+    if (!Object.prototype.hasOwnProperty.call(BG_MODES, mode)) return;
+    UI.bg = mode;
+    saveUI();
+    applyBackground();
+    renderViewModal(true);
+  }
+
+  function setDensity(key) {
+    if (!Object.prototype.hasOwnProperty.call(BG_DENSITY, key)) return;
+    UI.density = key;
+    saveUI();
+    applyBackground();
+    renderViewModal(false);
+    var chip = $('#modal .chip[data-density="' + key + '"]');
+    if (chip && chip.focus) {
+      try { chip.focus(); } catch (e) { /* ignore */ }
+    }
+  }
+
+  function setViewTheme(value) {
+    applyTheme(value);
+    renderViewModal(false);
+    var chip = $('#modal .chip[data-act="set-theme"][data-theme="' + value + '"]');
+    if (chip && chip.focus) {
+      try { chip.focus(); } catch (e) { /* ignore */ }
+    }
+  }
+
+  function setMotion(value) {
+    UI.motion = !!value;
+    saveUI();
+    applyBackground();
+  }
+
+  function resetView() {
+    UI = { bg: 'grid', density: 'mid', motion: !systemReducedMotion() };
+    saveUI();
+    applyBackground();
+    renderViewModal(true);
+    toast('Вид сброшен');
+  }
+
+  function validRooms() {
+    return Object.keys(State.rooms)
+      .map(function (id) { return State.rooms[id]; })
+      .filter(function (room) { return room && !junkReason(room); });
+  }
+
+  function renderTabsMeta() {
+    var list = validRooms();
+    var counter = $('#tabCountRooms');
+    if (counter) counter.textContent = String(list.length);
+    var stats = $('#introStats');
+    if (!stats) return;
+    var game = list.filter(function (room) { return roomStatus(room) === 'game'; }).length;
+    var players = 0;
+    list.forEach(function (room) { players += playerList(room).length; });
+    stats.innerHTML = '<span>комнат: <b>' + list.length + '</b></span>' +
+      '<span>в игре: <b>' + game + '</b></span>' +
+      '<span>игроков в лобби: <b>' + players + '</b></span>';
+  }
+
+  /* ============================================================
      Обработчики событий
      ============================================================ */
 
@@ -3963,6 +4595,24 @@ const CONFIG = {
     switch (act) {
       case 'theme':
         toggleTheme();
+        break;
+      case 'tab':
+        setTab(el.getAttribute('data-tab') || 'rooms');
+        break;
+      case 'open-view':
+        openViewModal();
+        break;
+      case 'bg':
+        setBackground(el.getAttribute('data-bg') || 'grid');
+        break;
+      case 'density':
+        setDensity(el.getAttribute('data-density') || 'mid');
+        break;
+      case 'set-theme':
+        setViewTheme(el.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+        break;
+      case 'view-reset':
+        resetView();
         break;
       case 'auth':
         requireLogin(roomId ? { type: 'open-room', roomId: roomId } : null);
@@ -3974,6 +4624,7 @@ const CONFIG = {
         run(function () { return openNickModal(); });
         break;
       case 'overlay-open':
+        setTab('rooms', { keepScroll: true });
         run(function () { return openRoom(roomId || (overlayRoom() && overlayRoom().id) || ''); });
         break;
       case 'overlay-toggle':
@@ -4066,7 +4717,9 @@ const CONFIG = {
 
   function boot() {
     State.user = loadSession();
+    loadUI();
     applyTheme(LS.get('theme', 'dark') === 'light' ? 'light' : 'dark');
+    setTab(tabFromHash() || 'rooms', { silent: true, keepScroll: true });
     renderHeader();
     renderFilters();
     renderGrid();
@@ -4114,7 +4767,9 @@ const CONFIG = {
 
     document.addEventListener('change', function (event) {
       var target = event.target;
-      if (target && target.id === 'fMode') toggleSlotsField();
+      if (!target) return;
+      if (target.id === 'fMode') toggleSlotsField();
+      if (target.id === 'viewMotion') setMotion(target.checked);
     });
 
     document.addEventListener('input', function (event) {
@@ -4148,6 +4803,48 @@ const CONFIG = {
 
     window.addEventListener('pagehide', function () {
       if (Voice.active) stopVoice(true);
+    });
+
+    var tabbar = $('#tabbar');
+    if (tabbar) {
+      tabbar.addEventListener('keydown', function (event) {
+        var key = event.key;
+        if (key !== 'ArrowRight' && key !== 'ArrowLeft' && key !== 'Home' && key !== 'End') return;
+        if (!event.target || event.target.getAttribute('data-act') !== 'tab') return;
+        event.preventDefault();
+        var order = ['rooms', 'cheats'];
+        var index = order.indexOf(Tabs.current);
+        if (key === 'ArrowRight') index = (index + 1) % order.length;
+        else if (key === 'ArrowLeft') index = (index - 1 + order.length) % order.length;
+        else if (key === 'Home') index = 0;
+        else index = order.length - 1;
+        setTab(order[index]);
+        var next = tabbar.querySelector('[data-tab="' + order[index] + '"]');
+        if (next && next.focus) {
+          try { next.focus(); } catch (e) { /* ignore */ }
+        }
+      });
+    }
+
+    window.addEventListener('hashchange', function () {
+      var value = tabFromHash();
+      if (value && value !== Tabs.current) setTab(value, { silent: true });
+    });
+
+    var bgTimer = 0;
+    window.addEventListener('resize', function () {
+      clearTimeout(bgTimer);
+      bgTimer = setTimeout(function () {
+        try { bgResize(); } catch (e) { /* ignore */ }
+      }, 140);
+    });
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        bgStop();
+        return;
+      }
+      if (UI.motion && (UI.bg === 'stars' || UI.bg === 'network')) bgStart();
     });
 
     window.addEventListener('storage', function () {
