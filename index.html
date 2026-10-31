@@ -904,6 +904,12 @@
     .tabbar-btn { font-size: 12px; padding: 9px 0 10px; }
     .room-overlay:not(.is-pip) { left: 10px; right: 10px; bottom: 10px; width: auto; }
   }
+
+  @media (max-width: 400px) {
+    .brand { font-size: 14px; }
+    .me-nick { max-width: 56px; }
+    #viewBtn { padding: 5px 8px; }
+  }
 </style>
 </head>
 <body>
@@ -4582,7 +4588,7 @@ const CONFIG = {
     list.forEach(function (room) { players += playerList(room).length; });
     stats.innerHTML = '<span>комнат: <b>' + list.length + '</b></span>' +
       '<span>в игре: <b>' + game + '</b></span>' +
-      '<span>игроков в лобби: <b>' + players + '</b></span>';
+      '<span>игроков: <b>' + players + '</b></span>';
   }
 
   /* ============================================================

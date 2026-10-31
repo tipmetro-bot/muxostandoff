@@ -100,7 +100,7 @@ $('#fMode').value = '1x1';
 submit($('#roomForm'));
 await wait(300);
 check('счётчик обновился', $('#tabCountRooms').textContent === '1', $('#tabCountRooms').textContent);
-check('сводка считает игрока', /игроков в лобби: 1/.test($('#introStats').textContent), $('#introStats').textContent);
+check('сводка считает игрока', /игроков: 1/.test($('#introStats').textContent), $('#introStats').textContent);
 
 /* ---------- окно «Вид» ---------- */
 click($('[data-act="open-view"]'));
