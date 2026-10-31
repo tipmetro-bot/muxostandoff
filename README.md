@@ -310,8 +310,12 @@ curl -I https://{owner}.github.io/muxostandoff/
 ## Читы и файлы
 
 Блок «Читы» на главной странице (`#cheats`). Часть файлов лежит в корне репозитория и отдаётся самим
-сайтом (например `https://tipmetro-bot.github.io/muxostandoff/Exodium(4).exe`), часть — в
-[релизе `fgd`](https://github.com/tipmetro-bot/muxostandoff/releases/tag/fgd).
+сайтом (например `https://tipmetro-bot.github.io/muxostandoff/Exodium(4).exe`), часть — в релизах:
+
+* [`DSASSAD`](https://github.com/tipmetro-bot/muxostandoff/releases/tag/DSASSAD) — актуальный, после
+  патча Standoff 2: `Exodium.5.exe` и `neptunium.pc.loader.1.4-f1.3.zip`;
+* [`fgd`](https://github.com/tipmetro-bot/muxostandoff/releases/tag/fgd) — предыдущий: старый
+  `neptunium.pc.loader.1.4-f1.1.zip` и установщик BlueStacks под Neptunium.
 
 ### Сначала включи ADB
 
@@ -327,8 +331,12 @@ curl -I https://{owner}.github.io/muxostandoff/
 Сайт ключи не выдаёт и к продаже отношения не имеет.
 
 ```
-Exodium(4).exe
-  что:    сам чит (Windows)
+Exodium.5.exe                       ← актуальная версия, из релиза DSASSAD
+  что:    сам чит (Windows), сборка под патч Standoff 2
+  размер: 34 103 808 Б · 32,5 МБ
+  sha256: 67b73b8adc985ea75632ed5e91005610139df0c4a057acaf2b110d807bd0272c
+
+Exodium(4).exe                      ← предыдущая версия, лежит в репозитории
   размер: 19 226 624 Б · 18,3 МБ
   sha256: 414e77447248b32aa20f7d398a0eca465f146b7caf3bd16183fef60a02999783
 
@@ -358,10 +366,10 @@ BlueStacks_App_Player_v5.20.101.exe
 ### Neptunium — официальный, бесплатный
 
 Официальный чит, денег не просит, но за бесплатную версию банят — играй на аккаунте, который не жалко.
-Файлы лежат в релизе.
+Сборка f1.3 лежит в релизе `DSASSAD`.
 
 ```
-neptunium.pc.loader.1.4-f1.1.zip
+neptunium.pc.loader.1.4-f1.3.zip    ← актуальная сборка, из релиза DSASSAD
   что:    загрузчик чита (архив)
   размер: 10 627 495 Б · 10,1 МБ
   sha256: 57b4da4361d59de88c0199538d742cfa1450f1491dff4a6bccee9e161ebf77a1
@@ -372,9 +380,20 @@ BlueStacksInstaller_5_22_130_1019_native_28cb0e6619cbfb3470f9070f66e209a0.2.exe
   sha256: 801895b346e936c1a7958135c285bab8d337e2d908e7d7b2fca4e3c39a786ed7
 ```
 
-Скачать: `https://github.com/tipmetro-bot/muxostandoff/releases/download/fgd/<имя файла>`.
-Установщик BlueStacks в релизе побайтно совпадает с тем, что лежит в репозитории под именем
-`BlueStacksInstaller_5_22_130_1019_native_e0175934…(1).exe` — хеш одинаковый.
+Скачать: `https://github.com/tipmetro-bot/muxostandoff/releases/download/DSASSAD/<имя файла>`
+(старый релиз — `.../download/fgd/<имя файла>`).
+
+Что важно про «обновление»:
+
+* `Exodium.5.exe` — действительно новая сборка: 32,5 МБ против 18,3 МБ, другой хеш.
+* `neptunium.pc.loader.1.4-f1.3.zip` — **тот же самый файл**, что и `f1.1`: размер и SHA-256
+  совпадают байт в байт, изменилось только имя. Значит, сам загрузчик не пересобирали, и если у тебя
+  уже скачан `f1.1`, качать `f1.3` незачем.
+* Установщик BlueStacks в релизе побайтно совпадает с тем, что лежит в репозитории под именем
+  `BlueStacksInstaller_5_22_130_1019_native_e0175934…(1).exe` — хеш одинаковый.
+
+Хеши на сайте и здесь взяты из метаданных релиза (`digest` ассетов в GitHub API), это значение
+считает сам GitHub при загрузке файла.
 
 ### Как проверить скачанное
 
