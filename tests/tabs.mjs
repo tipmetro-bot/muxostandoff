@@ -48,7 +48,8 @@ await wait(300);
 
 /* ---------- вкладки ---------- */
 const tabs = $$('#tabbar [role="tab"]');
-check('две вкладки в шапке', tabs.length === 2, 'вкладок: ' + tabs.length);
+check('три вкладки в шапке', tabs.length === 3, 'вкладок: ' + tabs.length);
+check('вкладка «Друзья» на месте', !!$('#tabbar [data-tab="friends"]') && $('#pane-friends').hidden === true, '');
 check('по умолчанию открыты комнаты', !$('#pane-rooms').hidden && $('#cheats').hidden === true,
   'rooms hidden=' + $('#pane-rooms').hidden + ' cheats hidden=' + $('#cheats').hidden);
 check('активная вкладка помечена', $('#tabRooms').getAttribute('aria-selected') === 'true' &&
