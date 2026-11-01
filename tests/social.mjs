@@ -18,15 +18,32 @@ function streamOf(kind) {
 }
 
 const calls = { media: 0, display: 0 };
+const pcs = [];
 
 const { dom, errors } = load(undefined, {
   beforeParse: (w) => {
     w.fetch = undefined;
     w.RTCPeerConnection = class FakePC {
-      constructor(cfg) { this.cfg = cfg; this.closed = false; }
+      constructor(cfg) {
+        this.cfg = cfg;
+        this.closed = false;
+        this.transceivers = [];
+        this.added = [];
+        pcs.push(this);
+      }
+      addTransceiver(kind, opts) {
+        const sender = { kind, replaced: [], replaceTrack: async (t) => { sender.replaced.push(t); } };
+        const tr = { sender, receiver: { track: { kind } }, direction: opts && opts.direction };
+        this.transceivers.push(tr);
+        return tr;
+      }
+      getTransceivers() { return this.transceivers; }
       addTrack(track) {
         this.track = track;
-        return { track, kind: track.kind, replaceTrack: async (t) => { this.replaced = t; } };
+        this.added.push(track);
+        const sender = { track, kind: track.kind, replaced: [], replaceTrack: async (t) => { sender.replaced.push(t); } };
+        this.transceivers.push({ sender, receiver: { track: { kind: track.kind } } });
+        return sender;
       }
       async createOffer() { return { type: 'offer', sdp: 'v=0 fake offer' }; }
       async createAnswer() { return { type: 'answer', sdp: 'v=0 fake answer' }; }
@@ -225,11 +242,64 @@ check('звонок принят', /Завершить/.test($('#callPanel').tex
 check('ответ записан', !!((social().calls || {})[thread] || {}).answer, '');
 check('статус активного звонка', /0:0/.test($('#callStatus').textContent), $('#callStatus').textContent);
 
-click($('#callPanel [data-act="call-screen"]'));
-await wait(200);
-check('демонстрация экрана включается', calls.display === 1 && /Стоп экран/.test($('#callPanel').textContent), '');
+/* ---------- камера и экран в голосовом звонке ---------- */
+const pc = pcs[pcs.length - 1];
+const videoSender = pc.transceivers.length ? pc.transceivers[0].sender : null;
+check('видео-линия создаётся сразу', !!videoSender && pc.transceivers[0].direction === 'sendrecv', '');
+check('без камеры превью свернуто', $('#callVideos').classList.contains('is-audio') && $('#callVideos').hidden === false, '');
 
+click($('#callPanel [data-act="call-cam"]'));
+await wait(280);
+check('камера уходит собеседнику', !!videoSender && videoSender.replaced.length === 1 &&
+  videoSender.replaced[0] && videoSender.replaced[0].kind === 'video',
+  'замен дорожки: ' + (videoSender ? videoSender.replaced.length : 'нет сендера'));
+check('локальное превью показывает камеру', $('#callVideos').hidden === false &&
+  $('#callPanel [data-call="local"]').hidden === false, '');
+check('кнопка камеры переключилась', /Камера вкл/.test($('#callPanel').textContent), '');
+
+click($('#callPanel [data-act="call-cam"]'));
+await wait(240);
+check('камера выключается', videoSender.replaced.length === 2 && videoSender.replaced[1] === null, '');
+check('превью снова свернуто', $('#callVideos').classList.contains('is-audio'), '');
+
+click($('#callPanel [data-act="call-screen"]'));
+await wait(300);
+check('экран уходит собеседнику', videoSender.replaced.length === 3 &&
+  videoSender.replaced[2] && videoSender.replaced[2].kind === 'video', '');
+check('демонстрация экрана включается', calls.display === 1 && /Стоп экран/.test($('#callPanel').textContent), '');
+check('экран виден в превью', $('#callVideos').classList.contains('is-audio') === false, '');
+
+click($('#callPanel [data-act="call-screen"]'));
+await wait(240);
+check('демонстрация выключается', /Экран/.test($('#callPanel').textContent) && videoSender.replaced[3] === null, '');
+
+/* ---------- собеседник завершил и почистил узел ---------- */
+const gone = social();
+delete gone.calls[thread];
+window.localStorage.setItem('mx_social', JSON.stringify(gone));
+const goneAt = Date.now();
+for (let i = 0; i < 40; i += 1) {
+  if ($('#callPanel').hidden) break;
+  await wait(150);
+}
+check('пропавший узел завершает звонок', $('#callPanel').hidden === true && Date.now() - goneAt < 5000,
+  'за ' + (Date.now() - goneAt) + ' мс');
+
+/* ---------- мгновенное завершение ---------- */
+const fresh = social();
+fresh.calls[thread] = {
+  offer: { from: '42073869', nick: 'Fury_51', kind: 'audio', sdp: 'v=0 fake offer', at: Date.now() + 10 },
+  state: { phase: 'ring', from: '42073869', at: Date.now() + 10 },
+};
+window.localStorage.setItem('mx_social', JSON.stringify(fresh));
+await openFriends();
+await wait(600);
+check('звонок приходит снова', $('#callPanel').hidden === false, '');
+
+click($('#callPanel [data-act="call-accept"]'));
+await wait(450);
 click($('#callPanel [data-act="call-end"]'));
+check('панель гаснет сразу по «Завершить»', $('#callPanel').hidden === true, '');
 await wait(400);
 check('звонок завершён', $('#callPanel').hidden === true, '');
 check('завершение записано', !!((social().calls || {})[thread] || {}).end, '');

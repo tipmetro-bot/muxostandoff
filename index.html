@@ -1052,7 +1052,12 @@
     background: #000;
     object-fit: cover;
   }
-  .call-videos[hidden] { display: none; }
+  .call-videos.is-audio video {
+    height: 0;
+    margin: 0;
+    border: 0;
+    opacity: 0;
+  }
   .call-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 12px; }
   .call-actions .btn { flex: 1 1 auto; }
   .call-note { padding: 0 12px 12px; color: var(--muted); font-size: 11px; }
@@ -5436,12 +5441,23 @@ const CONFIG = {
     nick: '',
     thread: '',
     kind: 'audio',
+    baseKind: 'audio',
     pc: null,
     local: null,
     remote: null,
     screen: null,
     camera: null,
     senders: [],
+    videoSender: null,
+    pendingVideo: null,
+    remoteTracks: {},
+    isOfferer: false,
+    negotiating: false,
+    appliedReoffer: 0,
+    appliedAnswer: 0,
+    emptySince: 0,
+    polling: false,
+    watch: 0,
     muted: false,
     cam: false,
     sharing: false,
@@ -5490,12 +5506,46 @@ const CONFIG = {
 
   function attachCallVideo(role, stream) {
     var el = $('#callPanel [data-call="' + role + '"]');
-    if (!el || !stream) return;
-    try { el.srcObject = stream; } catch (e) { /* старые браузеры */ }
+    if (!el) return;
+    if (!stream) {
+      if (role === 'local') el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    var same = false;
+    try { same = el.srcObject === stream; } catch (e) { same = false; }
+    if (!same) {
+      try { el.srcObject = stream; } catch (e) { /* старые браузеры */ }
+    }
     var played = el.play && el.play();
     if (played && typeof played.catch === 'function') played.catch(function () { /* автоплей */ });
+  }
+
+  function hasRemoteVideo() {
+    if (!Call.remote) return false;
+    try {
+      return typeof Call.remote.getVideoTracks === 'function' && Call.remote.getVideoTracks().length > 0;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function localPreviewStream() {
+    if (Call.screen) return Call.screen;
+    if (Call.camera) return Call.camera;
+    if (Call.kind === 'video') return Call.local;
+    return null;
+  }
+
+  function refreshCallVideos() {
     var box = $('#callVideos');
-    if (box) box.hidden = false;
+    if (!box) return;
+    var show = !!Call.camera || !!Call.screen || hasRemoteVideo() || Call.baseKind === 'video';
+    /* сам контейнер не скрываем: иначе браузеры глушат звук собеседника */
+    box.hidden = false;
+    box.classList.toggle('is-audio', !show);
+    attachCallVideo('local', show ? localPreviewStream() : null);
+    attachCallVideo('remote', Call.remote);
   }
 
   function callStatusText() {
@@ -5522,6 +5572,22 @@ const CONFIG = {
     if (Call.timer) {
       clearInterval(Call.timer);
       Call.timer = 0;
+    }
+  }
+
+
+  function startCallWatch() {
+    stopCallWatch();
+    Call.watch = window.setInterval(function () {
+      if (document.hidden) return;
+      pollCalls();
+    }, 1500);
+  }
+
+  function stopCallWatch() {
+    if (Call.watch) {
+      clearInterval(Call.watch);
+      Call.watch = 0;
     }
   }
 
@@ -5557,18 +5623,14 @@ const CONFIG = {
       return;
     }
     root.hidden = false;
-    var showVideo = Call.kind === 'video' || Call.sharing;
     root.innerHTML = '<div class="call-head"><span class="dot dot--on"></span>' +
       '<span class="call-nick">' + esc(Call.nick || 'Игрок') + '</span>' +
       '<span class="call-status" id="callStatus">' + esc(callStatusText()) + '</span></div>' +
-      '<div class="call-videos" id="callVideos"' + (showVideo ? '' : ' hidden') + '>' +
-      '<video data-call="remote" autoplay playsinline></video>' +
-      '<video data-call="local" autoplay playsinline muted></video></div>' +
+      '<div class="call-videos" id="callVideos" hidden>' +
+      '<video class="call-remote" data-call="remote" autoplay playsinline></video>' +
+      '<video class="call-local" data-call="local" autoplay playsinline muted></video></div>' +
       callActionsHTML();
-    if (showVideo) {
-      attachCallVideo('local', Call.local);
-      attachCallVideo('remote', Call.remote);
-    }
+    refreshCallVideos();
     if (Call.state === 'active') startCallTimer();
     else stopCallTimer();
   }
@@ -5586,12 +5648,22 @@ const CONFIG = {
     Call.nick = '';
     Call.thread = '';
     Call.kind = 'audio';
+    Call.baseKind = 'audio';
     Call.pc = null;
     Call.local = null;
     Call.remote = null;
     Call.screen = null;
     Call.camera = null;
     Call.senders = [];
+    Call.videoSender = null;
+    Call.pendingVideo = null;
+    Call.remoteTracks = {};
+    Call.isOfferer = false;
+    Call.negotiating = false;
+    Call.appliedReoffer = 0;
+    Call.appliedAnswer = 0;
+    Call.emptySince = 0;
+    stopCallWatch();
     Call.muted = false;
     Call.cam = false;
     Call.sharing = false;
@@ -5618,6 +5690,19 @@ const CONFIG = {
     var pc = new window.RTCPeerConnection({ iceServers: iceServers() });
     Call.pc = pc;
     Call.senders = [];
+    Call.videoSender = null;
+    Call.remoteTracks = {};
+
+    /* видео-линия есть с самого начала: камера и экран включаются без пересогласования */
+    if (typeof pc.addTransceiver === 'function') {
+      try {
+        var tr = pc.addTransceiver('video', { direction: 'sendrecv' });
+        if (tr && tr.sender) Call.videoSender = tr.sender;
+      } catch (e) { /* браузер без addTransceiver — сработает пересогласование */ }
+    }
+    if (typeof window.MediaStream === 'function') {
+      try { Call.remote = new window.MediaStream(); } catch (e) { Call.remote = null; }
+    }
     pc.onicecandidate = function (event) {
       if (!event || !event.candidate || !Call.thread) return;
       safeWrite(callSignalsPath(), {
@@ -5631,18 +5716,46 @@ const CONFIG = {
       });
     };
     pc.ontrack = function (event) {
-      var stream = (event && event.streams && event.streams[0]) || null;
-      if (!stream && event && event.track && typeof window.MediaStream === 'function') {
-        stream = new window.MediaStream([event.track]);
+      var track = event && event.track;
+      if (track) {
+        var id = track.id || 't' + Math.random().toString(36).slice(2);
+        if (!Call.remoteTracks[id]) {
+          Call.remoteTracks[id] = true;
+          if (Call.remote && typeof Call.remote.addTrack === 'function') {
+            try { Call.remote.addTrack(track); } catch (e) { /* ignore */ }
+          }
+        }
+        track.onended = function () { refreshCallVideos(); };
       }
-      if (!stream) return;
-      Call.remote = stream;
-      attachCallVideo('remote', stream);
+      if (!Call.remote || (typeof Call.remote.getTracks === 'function' && !Call.remote.getTracks().length)) {
+        var stream = (event && event.streams && event.streams[0]) || null;
+        if (stream) {
+          Call.remote = stream;
+          attachCallVideo('remote', stream);
+          return;
+        }
+      }
+      refreshCallVideos();
     };
     pc.onconnectionstatechange = function () {
-      var state = pc.connectionState;
-      if (state === 'failed' || state === 'closed') {
-        if (Call.state === 'active') toast('Связь прервалась', 'error');
+      var state = '';
+      try { state = pc.connectionState; } catch (e) { state = ''; }
+      if (Call.pc !== pc) return;
+      if (state === 'failed') {
+        if (Call.state === 'active') toast('Связь прервалась — проверь сеть или TURN', 'error');
+        if (Call.state === 'active') resetCall();
+        return;
+      }
+      if (state === 'disconnected') {
+        setTimeout(function () {
+          if (Call.pc !== pc || Call.state !== 'active') return;
+          var now = '';
+          try { now = pc.connectionState; } catch (e) { now = ''; }
+          if (now === 'disconnected' || now === 'failed') {
+            toast('Связь прервалась', 'error');
+            resetCall();
+          }
+        }, 6000);
       }
     };
     return pc;
@@ -5651,12 +5764,72 @@ const CONFIG = {
   function addCallTracks() {
     if (!Call.pc || !Call.local) return;
     if (typeof Call.pc.addTrack !== 'function') return;
-    Call.local.getTracks().forEach(function (track) {
+    var audio = Call.local.getAudioTracks ? Call.local.getAudioTracks() : [];
+    audio.forEach(function (track) {
       try {
         var sender = Call.pc.addTrack(track, Call.local);
-        if (sender) Call.senders.push({ sender: sender, kind: track.kind });
+        if (sender) Call.senders.push({ sender: sender, kind: 'audio' });
       } catch (e) { /* ignore */ }
     });
+    var video = Call.local.getVideoTracks ? Call.local.getVideoTracks() : [];
+    if (!video.length) return;
+    var track = video[0];
+    var existing = videoSender();
+    if (existing && existing.replaceTrack) {
+      try {
+        var swapped = existing.replaceTrack(track);
+        if (swapped && typeof swapped.catch === 'function') swapped.catch(function () { /* ниже addTrack */ });
+        return;
+      } catch (e) { /* ниже addTrack */ }
+    }
+    try {
+      var sender = Call.pc.addTrack(track, Call.local);
+      if (sender) {
+        Call.videoSender = sender;
+        Call.senders.push({ sender: sender, kind: 'video' });
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  function attachVideoTrack(track) {
+    var sender = videoSender();
+    if (sender && sender.replaceTrack) {
+      return sender.replaceTrack(track).then(function () { return true; }, function () {
+        Call.pendingVideo = track || null;
+        return false;
+      });
+    }
+    Call.pendingVideo = track || null;
+    if (track && Call.isOfferer) return renegotiateVideo();
+    return Promise.resolve(false);
+  }
+
+  async function renegotiateVideo() {
+    if (!Call.pc || Call.state !== 'active' || !Call.isOfferer || Call.negotiating) return false;
+    var track = Call.pendingVideo;
+    if (!track) return false;
+    var stream = Call.local;
+    if (!stream && typeof window.MediaStream === 'function') {
+      stream = new window.MediaStream([track]);
+    }
+    Call.negotiating = true;
+    try {
+      if (typeof Call.pc.addTrack === 'function') {
+        var sender = Call.pc.addTrack(track, stream);
+        if (sender) {
+          Call.videoSender = sender;
+          Call.senders.push({ sender: sender, kind: 'video' });
+        }
+      }
+      var offer = await Call.pc.createOffer();
+      await Call.pc.setLocalDescription(offer);
+      await callWrite('reoffer', { from: String(State.user.id), sdp: offer.sdp, at: Date.now() });
+      Call.negotiating = false;
+      return true;
+    } catch (e) {
+      Call.negotiating = false;
+      return false;
+    }
   }
 
   async function flushCallCandidates() {
@@ -5698,12 +5871,16 @@ const CONFIG = {
       toast('Браузер не дал доступ к микрофону — разреши его в адресе сайта', 'error');
       return;
     }
+    Call.isOfferer = true;
+    Call.baseKind = Call.kind;
     await callWrite('', null);
     buildCallPeer();
     addCallTracks();
     Call.state = 'outgoing';
     Call.startedAt = Date.now();
+    Call.emptySince = 0;
     renderCall();
+    startCallWatch();
     try {
       var offer = await Call.pc.createOffer();
       await Call.pc.setLocalDescription(offer);
@@ -5737,6 +5914,8 @@ const CONFIG = {
       return;
     }
     Call.cam = Call.kind === 'video';
+    Call.baseKind = Call.kind;
+    Call.isOfferer = false;
     buildCallPeer();
     addCallTracks();
     try {
@@ -5753,16 +5932,16 @@ const CONFIG = {
     Call.state = 'active';
     Call.startedAt = Date.now();
     renderCall();
+    startCallWatch();
     await flushCallCandidates();
   }
 
-  async function writeCallEnd(reason) {
-    if (!Call.thread || !State.user) return;
-    var thread = Call.thread;
+  function writeCallEnd(thread, reason) {
+    if (!thread || !State.user) return;
     var endAt = Date.now();
     Call.dismissed[thread] = endAt;
-    await callWrite('end', { from: String(State.user.id), reason: reason || 'hangup', at: endAt });
-    await callWrite('state', { phase: 'ended', from: String(State.user.id), at: endAt });
+    safeWrite('calls/' + thread + '/end', { from: String(State.user.id), reason: reason || 'hangup', at: endAt });
+    safeWrite('calls/' + thread + '/state', { phase: 'ended', from: String(State.user.id), at: endAt });
     setTimeout(function () {
       safeRead('calls/' + thread).then(function (node) {
         if (node && node.end && Number(node.end.at) === endAt) safeWrite('calls/' + thread, null);
@@ -5773,15 +5952,17 @@ const CONFIG = {
   async function endCall(silent) {
     if (Call.state === 'idle') return;
     var wasActive = Call.state === 'active';
-    await writeCallEnd('hangup');
+    var thread = Call.thread;
     resetCall();
+    writeCallEnd(thread, 'hangup');
     if (!silent) toast(wasActive ? 'Звонок завершён' : 'Звонок отменён');
   }
 
   async function declineCall() {
     if (Call.state !== 'incoming') return;
-    await writeCallEnd('declined');
+    var thread = Call.thread;
     resetCall();
+    writeCallEnd(thread, 'declined');
     toast('Звонок отклонён');
   }
 
@@ -5796,22 +5977,40 @@ const CONFIG = {
   }
 
   function videoSender() {
+    if (Call.videoSender && Call.videoSender.replaceTrack) return Call.videoSender;
     for (var i = 0; i < Call.senders.length; i += 1) {
-      if (Call.senders[i].kind === 'video') return Call.senders[i].sender;
+      if (Call.senders[i].kind === 'video' && Call.senders[i].sender) return Call.senders[i].sender;
+    }
+    if (Call.pc && typeof Call.pc.getTransceivers === 'function') {
+      var list = [];
+      try { list = Call.pc.getTransceivers() || []; } catch (e) { list = []; }
+      for (var j = 0; j < list.length; j += 1) {
+        var tr = list[j];
+        if (!tr || !tr.sender) continue;
+        var kind = '';
+        try {
+          kind = (tr.receiver && tr.receiver.track && tr.receiver.track.kind) ||
+            (tr.sender.track && tr.sender.track.kind) || '';
+        } catch (e) { kind = ''; }
+        if (kind === 'video') {
+          Call.videoSender = tr.sender;
+          return tr.sender;
+        }
+      }
     }
     return null;
   }
 
   async function toggleCallCamera() {
-    if (Call.state !== 'active') return;
-    var sender = videoSender();
+    if (Call.state !== 'active') {
+      toast('Камера включается во время звонка', 'error');
+      return;
+    }
     if (Call.cam) {
       stopStream(Call.camera);
       Call.camera = null;
-      if (sender && sender.replaceTrack) {
-        try { await sender.replaceTrack(null); } catch (e) { /* ignore */ }
-      }
       Call.cam = false;
+      await attachVideoTrack(Call.screen ? (Call.screen.getVideoTracks()[0] || null) : null);
       renderCall();
       return;
     }
@@ -5822,31 +6021,35 @@ const CONFIG = {
     try {
       Call.camera = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
       var track = Call.camera.getVideoTracks()[0];
-      if (sender && sender.replaceTrack && track) await sender.replaceTrack(track);
+      if (!track) throw new Error('нет видеодорожки');
       Call.cam = true;
       Call.kind = 'video';
-      attachCallVideo('local', Call.local);
+      if (Call.sharing) {
+        renderCall();
+        return;
+      }
+      var ok = await attachVideoTrack(track);
       renderCall();
+      if (!ok) toast('Камера включилась локально, но собеседник её не получит — нужен TURN', 'error');
     } catch (e) {
+      stopStream(Call.camera);
+      Call.camera = null;
+      Call.cam = false;
       toast('Камера недоступна — проверь разрешение', 'error');
     }
   }
 
   async function toggleCallScreen() {
-    if (Call.state !== 'active') return;
-    var sender = videoSender();
+    if (Call.state !== 'active') {
+      toast('Экран включается во время звонка', 'error');
+      return;
+    }
     if (Call.sharing) {
       stopStream(Call.screen);
       Call.screen = null;
-      if (Call.cam && Call.camera) {
-        var back = Call.camera.getVideoTracks()[0];
-        if (sender && sender.replaceTrack && back) {
-          try { await sender.replaceTrack(back); } catch (e) { /* ignore */ }
-        }
-      } else if (sender && sender.replaceTrack) {
-        try { await sender.replaceTrack(null); } catch (e) { /* ignore */ }
-      }
       Call.sharing = false;
+      var back = Call.cam && Call.camera ? (Call.camera.getVideoTracks()[0] || null) : null;
+      await attachVideoTrack(back);
       renderCall();
       return;
     }
@@ -5857,12 +6060,19 @@ const CONFIG = {
     try {
       Call.screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
       var track = Call.screen.getVideoTracks()[0];
-      if (sender && sender.replaceTrack && track) await sender.replaceTrack(track);
+      if (!track) throw new Error('нет видеодорожки');
+      track.onended = function () {
+        if (Call.sharing) toggleCallScreen();
+      };
       Call.sharing = true;
       Call.kind = 'video';
+      var ok = await attachVideoTrack(track);
       renderCall();
-      attachCallVideo('local', Call.screen);
+      if (!ok) toast('Экран включился локально, но собеседник его не получит — нужен TURN', 'error');
     } catch (e) {
+      stopStream(Call.screen);
+      Call.screen = null;
+      Call.sharing = false;
       toast('Экран не расшарен — окно выбора закрыли', 'error');
     }
   }
@@ -5895,11 +6105,34 @@ const CONFIG = {
       }
       return;
     }
+    var phase = node.state && node.state.phase ? String(node.state.phase) : '';
+    var phaseFrom = node.state && node.state.from ? String(node.state.from) : '';
+    if (phase === 'ended' && phaseFrom !== String(State.user.id)) {
+      var endedLive = Call.state === 'active';
+      resetCall();
+      toast(endedLive ? 'Собеседник завершил звонок' : 'Звонок отменён');
+      return;
+    }
     if (node.end && String(node.end.from) !== String(State.user.id)) {
       var wasActive = Call.state === 'active';
       resetCall();
       toast(wasActive ? 'Собеседник завершил звонок' : 'Звонок отменён');
       return;
+    }
+    if (node.reanswer && Call.isOfferer && Number(node.reanswer.at) !== Call.appliedAnswer) {
+      Call.appliedAnswer = Number(node.reanswer.at) || 0;
+      try {
+        await Call.pc.setRemoteDescription({ type: 'answer', sdp: node.reanswer.sdp });
+      } catch (e) { /* ignore */ }
+    }
+    if (node.reoffer && !Call.isOfferer && Number(node.reoffer.at) !== Call.appliedReoffer) {
+      Call.appliedReoffer = Number(node.reoffer.at) || 0;
+      try {
+        await Call.pc.setRemoteDescription({ type: 'offer', sdp: node.reoffer.sdp });
+        var reanswer = await Call.pc.createAnswer();
+        await Call.pc.setLocalDescription(reanswer);
+        await callWrite('reanswer', { from: String(State.user.id), sdp: reanswer.sdp, at: Date.now() });
+      } catch (e) { /* ignore */ }
     }
     if (Call.state === 'outgoing' && node.answer && !Call.applied) {
       Call.applied = true;
@@ -5909,12 +6142,25 @@ const CONFIG = {
       Call.state = 'active';
       Call.startedAt = Number(node.answer.at) || Date.now();
       renderCall();
+      startCallWatch();
+      if (Call.pendingVideo) await renegotiateVideo();
     }
     if (Call.state === 'active') await applyCallIce(node);
   }
 
   async function pollCalls() {
-    if (!State.user) return;
+    if (!State.user || Call.polling) return;
+    Call.polling = true;
+    try {
+      await pollCallsOnce();
+    } catch (e) {
+      /* опрос не должен ломать звонок */
+    } finally {
+      Call.polling = false;
+    }
+  }
+
+  async function pollCallsOnce() {
     var root = await safeRead('calls');
 
     if (Call.state === 'incoming') {
@@ -5929,6 +6175,22 @@ const CONFIG = {
       }
       return;
     }
+    var node = (root && typeof root === 'object' && Call.thread) ? root[Call.thread] : null;
+    if (Call.thread && !node && Call.state !== 'idle') {
+      /* узел звонка исчез: собеседник завершил и почистил базу */
+      if (!Call.emptySince) Call.emptySince = Date.now();
+      var waited = Date.now() - Call.emptySince;
+      var grace = Call.state === 'outgoing' ? 4000 : 1200;
+      if (waited > grace) {
+        var wasLive = Call.state === 'active';
+        var whoGone = Call.nick;
+        resetCall();
+        toast(wasLive ? 'Звонок завершён' : (whoGone ? 'Звонок от ' + whoGone + ' отменён' : 'Звонок отменён'));
+        return;
+      }
+    } else {
+      Call.emptySince = 0;
+    }
     if (!root || typeof root !== 'object') {
       if (Call.state === 'outgoing' && Date.now() - Call.startedAt > CALL_RING_TTL_MS) {
         resetCall();
@@ -5936,7 +6198,12 @@ const CONFIG = {
       }
       return;
     }
-    if (Call.thread && root[Call.thread]) await handleCallUpdate(root[Call.thread]);
+    if (node && Call.state === 'outgoing' && Date.now() - Call.startedAt > CALL_RING_TTL_MS) {
+      resetCall();
+      toast('Никто не ответил', 'error');
+      return;
+    }
+    if (node) await handleCallUpdate(node);
     if (Call.state !== 'idle') return;
 
     var uid = myKey();
@@ -5962,6 +6229,7 @@ const CONFIG = {
       Call.incomingSdp = String(offer.sdp || '');
       Call.ringAt = now;
       renderCall();
+      startCallWatch();
       toast('Входящий звонок · ' + Call.nick, 'ok');
       return;
     }
