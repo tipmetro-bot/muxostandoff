@@ -910,6 +910,158 @@
     .me-nick { max-width: 56px; }
     #viewBtn { padding: 5px 8px; }
   }
+  /* ---------- друзья, переписка, звонки ---------- */
+  .friends-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: 14px;
+    align-items: start;
+  }
+  .friends-col { display: grid; gap: 10px; align-content: start; min-width: 0; }
+
+  .list-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--panel);
+    overflow: hidden;
+  }
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .panel-head .muted { font-weight: 400; font-size: 11px; }
+
+  .friend-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+  }
+  .friend-row:first-child { border-top: 0; }
+  .friend-row-main { display: grid; gap: 2px; min-width: 0; flex: 1 1 auto; }
+  .friend-nick {
+    font-size: 13px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .friend-sub { color: var(--muted); font-family: var(--mono); font-size: 10px; }
+  .friend-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+  .friend-empty { padding: 16px 12px; color: var(--muted); font-size: 12px; text-align: center; }
+  .friend-online { color: var(--accent); }
+
+  .search-results { display: grid; gap: 6px; margin-top: 10px; }
+  .search-hit {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--panel);
+  }
+
+  .dm-panel {
+    display: grid;
+    grid-template-rows: auto minmax(180px, 1fr) auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--panel);
+    min-height: 340px;
+    overflow: hidden;
+  }
+  .dm-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    min-width: 0;
+  }
+  .dm-head .friend-row-main { flex: 1 1 auto; }
+  .dm-list {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+    margin: 0;
+    padding: 12px;
+    max-height: 420px;
+    overflow-y: auto;
+    list-style: none;
+  }
+  .dm-msg {
+    display: grid;
+    gap: 2px;
+    justify-items: start;
+    max-width: 92%;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--panel-2);
+    font-size: 13px;
+  }
+  .dm-msg--mine {
+    justify-items: end;
+    justify-self: end;
+    border-color: var(--border-strong);
+    background: var(--accent-soft);
+  }
+  .dm-msg-meta { color: var(--muted); font-family: var(--mono); font-size: 10px; }
+  .dm-msg-text { overflow-wrap: anywhere; }
+  .dm-form { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
+  .dm-form input { flex: 1 1 auto; min-width: 0; }
+  .dm-empty { padding: 40px 16px; color: var(--muted); font-size: 13px; text-align: center; }
+
+  .call-panel {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 55;
+    width: min(340px, calc(100vw - 24px));
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--panel);
+    overflow: hidden;
+  }
+  .call-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 0;
+  }
+  .call-head .call-nick { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .call-status { margin-left: auto; color: var(--muted); font-family: var(--mono); font-size: 11px; font-weight: 400; }
+  .call-videos { display: grid; gap: 6px; padding: 10px 12px; }
+  .call-videos video {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: #000;
+    object-fit: cover;
+  }
+  .call-videos[hidden] { display: none; }
+  .call-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 12px; }
+  .call-actions .btn { flex: 1 1 auto; }
+  .call-note { padding: 0 12px 12px; color: var(--muted); font-size: 11px; }
+
+  @media (max-width: 860px) {
+    .friends-grid { grid-template-columns: 1fr; }
+    .dm-list { max-height: 300px; }
+  }
+
 </style>
 </head>
 <body>
@@ -930,6 +1082,10 @@
           aria-selected="true" aria-controls="pane-rooms" data-act="tab" data-tab="rooms">
           Комнаты <span class="tabbar-count" id="tabCountRooms">0</span>
         </button>
+        <button class="tabbar-btn" type="button" role="tab" id="tabFriends"
+          aria-selected="false" aria-controls="pane-friends" data-act="tab" data-tab="friends">
+          Друзья <span class="tabbar-count" id="tabCountFriends" hidden>0</span>
+        </button>
         <button class="tabbar-btn" type="button" role="tab" id="tabCheats"
           aria-selected="false" aria-controls="cheats" data-act="tab" data-tab="cheats">Читы</button>
       </div>
@@ -944,6 +1100,7 @@
       <div class="intro-actions">
         <button class="btn btn-primary" type="button" data-act="create">Создать комнату</button>
         <button class="btn" type="button" data-act="tab" data-tab="cheats">Читы и файлы</button>
+        <button class="btn" type="button" data-act="tab" data-tab="friends">Друзья и звонки</button>
         <button class="btn" type="button" data-act="open-view">Фон сайта</button>
       </div>
       <div class="intro-stats" id="introStats"></div>
@@ -959,6 +1116,32 @@
       </div>
       <div class="style-filters" id="styleFilters"></div>
       <div class="grid" id="roomsGrid"></div>
+    </section>
+
+    <section class="wrap board" id="pane-friends" data-pane="friends" role="tabpanel"
+      aria-labelledby="tabFriends" hidden>
+      <div class="board-head">
+        <div>
+          <h2 class="section-title">Друзья</h2>
+          <p class="hint">Заявки, переписка и звонки. Звонить можно только тем, кто у тебя в друзьях.
+            Нужен вход по Standoff 2 ID.</p>
+        </div>
+        <div class="search">
+          <input type="search" id="friendSearch" placeholder="Найти по ID или нику"
+            aria-label="Поиск игроков" autocomplete="off">
+        </div>
+      </div>
+      <div id="friendSearchResults"></div>
+      <div class="friends-grid">
+        <div class="friends-col">
+          <div id="friendRequests"></div>
+          <div id="friendList"></div>
+        </div>
+        <div class="friends-col">
+          <div id="dmPane"></div>
+          <p class="hint" id="dmHint">Выбери друга слева, чтобы открыть переписку и позвонить.</p>
+        </div>
+      </div>
     </section>
 
     <section class="wrap board" id="cheats" data-pane="cheats" role="tabpanel"
@@ -1108,6 +1291,7 @@
   <div class="modal" id="modal" hidden></div>
   <div class="voice-audio" id="voiceAudio" aria-hidden="true"></div>
   <div class="room-overlay" id="roomOverlay" hidden></div>
+  <div class="call-panel" id="callPanel" hidden></div>
 
   <noscript>
     <p style="padding:20px">Для работы сайта нужен JavaScript.</p>
@@ -1118,6 +1302,7 @@ const CONFIG = {
   databaseURL: "https://muxostandoff-default-rtdb.firebaseio.com",      // https://xxx-default-rtdb.europe-west1.firebasedatabase.app
   verifyEndpoint: "",   // проверка ника: вернуть {"nick":"Ник"} или 404
   demoVerifyDelay: 700,
+  iceServers: null,     // свои STUN/TURN для звонков, например [{ urls: "turn:host:3478", username: "u", credential: "p" }]
   staleRoomHours: 3     // брошенные комнаты с одним игроком старше N часов убираются
 };
 
@@ -2179,6 +2364,8 @@ const CONFIG = {
     renderHeader();
     renderFilters();
     renderGrid();
+    Social.seen = seenMapLoad();
+    renderFriends();
     renderStatus();
     renderOverlay();
   }
@@ -2279,11 +2466,24 @@ const CONFIG = {
 
   function logout() {
     if (Voice.active) stopVoice(true);
+    if (Call.state !== 'idle') endCall(true);
+    presenceClear();
+    stopSocialLoop();
+    closeThread();
     State.user = null;
+    Social.friends = {};
+    Social.incoming = {};
+    Social.outgoing = {};
+    Social.presence = {};
+    Social.meta = {};
+    Social.known = {};
+    Social.notified = {};
     State.unlocked = {};
     saveSession();
     closeModal();
     render();
+    updateSocialBadge();
+    renderFriends();
     toast('Вы вышли из аккаунта');
   }
 
@@ -2455,6 +2655,7 @@ const CONFIG = {
     State.user = { id: user.id, nick: user.nick, verifiedNick: user.verifiedNick, wins: 0 };
     State.unlocked = {};
     saveSession();
+    startSocialLoop();
     var next = pending;
     pending = null;
     closeModal();
@@ -2502,6 +2703,7 @@ const CONFIG = {
     };
     State.unlocked = {};
     saveSession();
+    startSocialLoop();
     var next = pending;
     pending = null;
     closeModal();
@@ -4408,12 +4610,14 @@ const CONFIG = {
   var Tabs = { current: 'rooms' };
 
   function normalizeTab(name) {
-    return name === 'cheats' ? 'cheats' : 'rooms';
+    if (name === 'cheats') return 'cheats';
+    if (name === 'friends') return 'friends';
+    return 'rooms';
   }
 
   function tabFromHash() {
     var hash = String(window.location.hash || '').replace(/^#/, '');
-    if (hash === 'cheats' || hash === 'rooms') return hash;
+    if (hash === 'cheats' || hash === 'friends' || hash === 'rooms') return hash;
     return '';
   }
 
@@ -4421,9 +4625,11 @@ const CONFIG = {
     var value = normalizeTab(name);
     var rooms = $('#pane-rooms');
     var cheats = $('#cheats');
+    var friends = $('#pane-friends');
     Tabs.current = value;
     if (rooms) rooms.hidden = value !== 'rooms';
     if (cheats) cheats.hidden = value !== 'cheats';
+    if (friends) friends.hidden = value !== 'friends';
     $$('[data-act="tab"]').forEach(function (btn) {
       var active = btn.getAttribute('data-tab') === value;
       btn.classList.toggle('is-active', active);
@@ -4441,6 +4647,12 @@ const CONFIG = {
     }
     if (!(opts && opts.keepScroll) && (window.scrollY || 0) > 120) {
       try { window.scrollTo(0, 0); } catch (e) { /* ignore */ }
+    }
+    if (value === 'friends') {
+      if (State.user) {
+        refreshSocial({ silent: true });
+        pollCalls();
+      } else renderFriends();
     }
   }
 
@@ -4592,6 +4804,1170 @@ const CONFIG = {
   }
 
   /* ============================================================
+     Друзья, присутствие и переписка
+     ============================================================ */
+
+  var SOCIAL_POLL_MS = 6000;
+  var PRESENCE_TTL_MS = 80000;
+  var DM_LIMIT = 1000;
+
+  var Social = {
+    friends: {},
+    incoming: {},
+    outgoing: {},
+    presence: {},
+    meta: {},
+    seen: {},
+    known: {},
+    thread: '',
+    messages: [],
+    draft: '',
+    armed: '',
+    notified: {},
+    poll: 0,
+    lastSent: 0,
+    searchTimer: 0,
+    lastPresence: 0,
+    renderedPeer: '',
+    loading: false
+  };
+
+  function socialKey(value) {
+    return String(value == null ? '' : value).replace(/[.#$/\[\]]/g, '_');
+  }
+
+  function localSocial() {
+    var data = LS.get('social', null);
+    return data && typeof data === 'object' ? data : {};
+  }
+
+  async function socialRead(path) {
+    if (cloud()) return await api('GET', path);
+    var node = localSocial();
+    var parts = String(path).split('/').filter(Boolean);
+    for (var i = 0; i < parts.length; i += 1) {
+      if (!node || typeof node !== 'object') return null;
+      node = node[parts[i]];
+    }
+    if (node === undefined) return null;
+    try { return JSON.parse(JSON.stringify(node)); } catch (e) { return null; }
+  }
+
+  async function socialWrite(path, value) {
+    if (cloud()) {
+      await api('PUT', path, value === null || value === undefined ? null : value);
+      return;
+    }
+    var data = localSocial();
+    var parts = String(path).split('/').filter(Boolean);
+    var node = data;
+    for (var i = 0; i < parts.length - 1; i += 1) {
+      var key = parts[i];
+      if (!node[key] || typeof node[key] !== 'object') node[key] = {};
+      node = node[key];
+    }
+    var last = parts[parts.length - 1];
+    if (value === null || value === undefined) delete node[last];
+    else node[last] = value;
+    LS.set('social', data);
+  }
+
+  async function safeRead(path) {
+    try { return await socialRead(path); } catch (e) { return null; }
+  }
+
+  async function safeWrite(path, value) {
+    try { await socialWrite(path, value); return true; } catch (e) { return false; }
+  }
+
+  async function readUsersNode() {
+    if (cloud()) return await safeRead('users');
+    return localUsers();
+  }
+
+  function myKey() {
+    return State.user ? socialKey(State.user.id) : '';
+  }
+
+  function dmThread(a, b) {
+    var ids = [socialKey(a), socialKey(b)].sort();
+    return ids[0] + '~' + ids[1];
+  }
+
+  function isOnline(id) {
+    var rec = Social.presence[socialKey(id)];
+    return !!(rec && Number(rec.at) > 0 && Date.now() - Number(rec.at) < PRESENCE_TTL_MS);
+  }
+
+  function seenMapLoad() {
+    var data = LS.get('dmSeen', null);
+    return data && typeof data === 'object' ? data : {};
+  }
+
+  function seenAt(id) {
+    return Number(Social.seen[socialKey(id)]) || 0;
+  }
+
+  function unreadFor(id) {
+    if (!State.user) return 0;
+    var meta = Social.meta[dmThread(State.user.id, id)];
+    if (!meta || !meta.lastAt) return 0;
+    if (String(meta.lastFrom) === String(State.user.id)) return 0;
+    return Number(meta.lastAt) > seenAt(id) ? 1 : 0;
+  }
+
+  function unreadTotal() {
+    var count = Object.keys(Social.incoming).length;
+    Object.keys(Social.friends).forEach(function (id) { count += unreadFor(id); });
+    return count;
+  }
+
+  async function presenceTouch(force) {
+    if (!State.user) return;
+    var now = Date.now();
+    if (!force && now - Social.lastPresence < 25000) return;
+    Social.lastPresence = now;
+    await safeWrite('presence/' + myKey(), { at: now, nick: State.user.nick });
+  }
+
+  async function presenceClear() {
+    if (!State.user) return;
+    await safeWrite('presence/' + myKey(), { at: 0, nick: State.user.nick });
+  }
+
+  function updateSocialBadge() {
+    var badge = $('#tabCountFriends');
+    if (!badge) return;
+    var count = unreadTotal();
+    badge.textContent = String(count);
+    badge.hidden = count === 0;
+  }
+
+  async function refreshSocial(opts) {
+    if (!State.user) {
+      Social.friends = {};
+      Social.incoming = {};
+      Social.outgoing = {};
+      Social.presence = {};
+      Social.meta = {};
+      updateSocialBadge();
+      renderFriends();
+      return;
+    }
+    var uid = myKey();
+    var raw = await safeRead('friends/' + uid);
+    var friends = {};
+    var incoming = {};
+    var outgoing = {};
+    Object.keys(raw || {}).forEach(function (id) {
+      var entry = raw[id];
+      if (!entry || typeof entry !== 'object') return;
+      var item = {
+        id: String(entry.id || id),
+        nick: String(entry.nick || 'Игрок'),
+        at: Number(entry.at) || 0,
+        status: String(entry.status || 'in')
+      };
+      if (item.status === 'friends') friends[id] = item;
+      else if (item.status === 'in') incoming[id] = item;
+      else outgoing[id] = item;
+    });
+    var pres = await safeRead('presence');
+    var meta = await safeRead('dmMeta');
+    Social.friends = friends;
+    Social.incoming = incoming;
+    Social.outgoing = outgoing;
+    Social.presence = pres && typeof pres === 'object' ? pres : {};
+    Social.meta = meta && typeof meta === 'object' ? meta : {};
+
+    Object.keys(incoming).forEach(function (id) {
+      if (Social.known[id]) return;
+      Social.known[id] = true;
+      if (!(opts && opts.silent)) toast('Заявка в друзья: ' + incoming[id].nick, 'ok');
+    });
+    Object.keys(Social.known).forEach(function (id) {
+      if (!incoming[id]) delete Social.known[id];
+    });
+
+    updateSocialBadge();
+    renderFriends();
+
+    if (Social.thread && Social.friends[Social.thread]) {
+      loadThread();
+    } else {
+      Object.keys(Social.friends).forEach(function (id) {
+        if (!unreadFor(id)) return;
+        var meta = Social.meta[dmThread(State.user.id, id)] || {};
+        if (Social.notified[id] === meta.lastAt) return;
+        Social.notified[id] = meta.lastAt;
+        if (opts && opts.silent) return;
+        toast(friendNick(Social.friends[id]) + ': ' + String(meta.lastText || 'новое сообщение'), 'ok');
+      });
+    }
+  }
+
+  function startSocialLoop() {
+    stopSocialLoop();
+    if (!State.user) return;
+    presenceTouch(true);
+    refreshSocial({ silent: true });
+    Social.poll = window.setInterval(function () {
+      if (document.hidden) return;
+      presenceTouch();
+      refreshSocial();
+      pollCalls();
+    }, SOCIAL_POLL_MS);
+  }
+
+  function stopSocialLoop() {
+    if (Social.poll) {
+      clearInterval(Social.poll);
+      Social.poll = 0;
+    }
+  }
+
+  /* ---------- разметка друзей ---------- */
+
+  function friendNick(item) {
+    var rec = Social.presence[socialKey(item.id)];
+    var nick = rec && rec.nick ? String(rec.nick) : '';
+    return nick || item.nick || 'Игрок';
+  }
+
+  function friendSubHTML(item) {
+    var online = isOnline(item.id);
+    var status = online ? '<span class="friend-online">в сети</span>' : 'не в сети';
+    return 'ID ' + esc(item.id) + ' · ' + status;
+  }
+
+  function friendRowHTML(item) {
+    var armed = Social.armed === String(item.id);
+    return '<div class="friend-row" data-friend="' + esc(item.id) + '">' +
+      '<span class="avatar avatar--sm">' + esc(initials(friendNick(item))) + '</span>' +
+      '<div class="friend-row-main"><span class="friend-nick">' + esc(friendNick(item)) + '</span>' +
+      '<span class="friend-sub">' + friendSubHTML(item) + '</span></div>' +
+      '<div class="friend-actions">' +
+      '<button class="btn btn-sm' + (unreadFor(item.id) ? ' btn-primary' : '') +
+      '" type="button" data-act="dm" data-peer="' + esc(item.id) + '">Чат</button>' +
+      '<button class="btn btn-sm" type="button" data-act="call" data-peer="' + esc(item.id) +
+      '" data-nick="' + esc(item.nick) + '">Звонок</button>' +
+      '<button class="btn btn-sm' + (armed ? ' btn-danger' : '') + '" type="button" data-act="unfriend" data-peer="' +
+      esc(item.id) + '" aria-label="Удалить из друзей">' + (armed ? 'Точно?' : '✕') + '</button>' +
+      '</div></div>';
+  }
+
+  function requestRowHTML(item, kind) {
+    var buttons = kind === 'in'
+      ? '<button class="btn btn-sm btn-primary" type="button" data-act="friend-accept" data-peer="' + esc(item.id) + '">Принять</button>' +
+        '<button class="btn btn-sm" type="button" data-act="friend-decline" data-peer="' + esc(item.id) + '">Отклонить</button>'
+      : '<button class="btn btn-sm" type="button" data-act="friend-cancel" data-peer="' + esc(item.id) + '">Отменить</button>';
+    return '<div class="friend-row"><span class="avatar avatar--sm">' + esc(initials(item.nick)) + '</span>' +
+      '<div class="friend-row-main"><span class="friend-nick">' + esc(item.nick) + '</span>' +
+      '<span class="friend-sub">' + (kind === 'in' ? 'хочет добавить тебя' : 'заявка отправлена') + '</span></div>' +
+      '<div class="friend-actions">' + buttons + '</div></div>';
+  }
+
+  function stateBlockHTML(text, action) {
+    return '<div class="state"><p>' + esc(text) + '</p>' + (action || '') + '</div>';
+  }
+
+  function renderFriends() {
+    var req = $('#friendRequests');
+    var list = $('#friendList');
+    if (!list) return;
+
+    if (!State.user) {
+      if (req) req.innerHTML = '';
+      list.innerHTML = stateBlockHTML('Войди по Standoff 2 ID, чтобы добавлять друзей, переписываться и звонить.',
+        '<button class="btn btn-primary" type="button" data-act="auth">Войти</button>');
+      renderDMPane();
+      return;
+    }
+
+    if (req) {
+      var inIds = Object.keys(Social.incoming);
+      var outIds = Object.keys(Social.outgoing);
+      if (!inIds.length && !outIds.length) {
+        req.innerHTML = '';
+      } else {
+        req.innerHTML = '<div class="list-card"><div class="panel-head">Заявки <span class="muted">' +
+          (inIds.length + outIds.length) + '</span></div>' +
+          inIds.sort(function (a, b) { return Social.incoming[b].at - Social.incoming[a].at; })
+            .map(function (id) { return requestRowHTML(Social.incoming[id], 'in'); }).join('') +
+          outIds.sort(function (a, b) { return Social.outgoing[b].at - Social.outgoing[a].at; })
+            .map(function (id) { return requestRowHTML(Social.outgoing[id], 'out'); }).join('') +
+          '</div>';
+      }
+    }
+
+    var ids = Object.keys(Social.friends).sort(function (a, b) {
+      var oa = isOnline(a) ? 0 : 1;
+      var ob = isOnline(b) ? 0 : 1;
+      if (oa !== ob) return oa - ob;
+      return String(Social.friends[a].nick).localeCompare(String(Social.friends[b].nick));
+    });
+    if (!ids.length) {
+      list.innerHTML = '<div class="list-card"><div class="panel-head">Друзья <span class="muted">0</span></div>' +
+        '<div class="friend-empty">Пока никого. Найди друга по Standoff 2 ID или нику в поиске выше.</div></div>';
+    } else {
+      list.innerHTML = '<div class="list-card"><div class="panel-head">Друзья <span class="muted">' +
+        ids.length + '</span></div>' + ids.map(function (id) { return friendRowHTML(Social.friends[id]); }).join('') +
+        '</div>';
+    }
+    renderDMPane();
+  }
+
+  /* ---------- поиск игроков ---------- */
+
+  async function runFriendSearch(query) {
+    var box = $('#friendSearchResults');
+    if (!box) return;
+    var q = String(query || '').trim();
+    if (!State.user || q.length < 2) {
+      box.innerHTML = '';
+      return;
+    }
+    var users = await readUsersNode();
+    var lower = q.toLowerCase();
+    var hits = [];
+    Object.keys(users || {}).forEach(function (id) {
+      if (String(id) === String(State.user.id)) return;
+      var nick = String((users[id] && users[id].nick) || '');
+      if (String(id).indexOf(q) === 0 || nick.toLowerCase().indexOf(lower) >= 0) {
+        hits.push({ id: String(id), nick: nick || 'Игрок' });
+      }
+    });
+    hits.sort(function (a, b) { return a.nick.localeCompare(b.nick); });
+    if (!hits.length) {
+      box.innerHTML = '<div class="search-results"><div class="friend-empty">Никого не нашли по запросу «' +
+        esc(q) + '».</div></div>';
+      return;
+    }
+    box.innerHTML = '<div class="search-results">' + hits.slice(0, 8).map(function (hit) {
+      var key = socialKey(hit.id);
+      var state;
+      if (Social.friends[key]) {
+        state = '<span class="friend-sub">уже в друзьях</span>';
+      } else if (Social.outgoing[key]) {
+        state = '<span class="friend-sub">заявка отправлена</span>';
+      } else if (Social.incoming[key]) {
+        state = '<button class="btn btn-sm btn-primary" type="button" data-act="friend-accept" data-peer="' + esc(hit.id) + '">Принять заявку</button>';
+      } else {
+        state = '<button class="btn btn-sm" type="button" data-act="friend-add" data-peer="' + esc(hit.id) +
+          '" data-nick="' + esc(hit.nick) + '">Добавить</button>';
+      }
+      return '<div class="search-hit"><span class="avatar avatar--sm">' + esc(initials(hit.nick)) + '</span>' +
+        '<div class="friend-row-main"><span class="friend-nick">' + esc(hit.nick) + '</span>' +
+        '<span class="friend-sub">ID ' + esc(hit.id) + (isOnline(hit.id) ? ' · в сети' : '') + '</span></div>' +
+        '<div class="friend-actions">' + state + '</div></div>';
+    }).join('') + '</div>';
+  }
+
+  /* ---------- действия с друзьями ---------- */
+
+  function friendEntry(otherId, nick, status, at) {
+    return { id: String(otherId), nick: String(nick || 'Игрок'), status: status, at: Number(at) || Date.now() };
+  }
+
+  async function sendFriendRequest(otherId, nick) {
+    if (!State.user) {
+      requireLogin(null);
+      return;
+    }
+    var me = myKey();
+    var peer = socialKey(otherId);
+    if (peer === me) {
+      toast('Это твой собственный ID', 'error');
+      return;
+    }
+    if (Social.friends[peer]) {
+      toast('Уже в друзьях', 'error');
+      return;
+    }
+    var now = Date.now();
+    var ok = await safeWrite('friends/' + me + '/' + peer, friendEntry(otherId, State.user.nick, 'out', now)) &&
+      await safeWrite('friends/' + peer + '/' + me, friendEntry(State.user.id, State.user.nick, 'in', now));
+    if (!ok) {
+      toast('Не получилось отправить заявку', 'error');
+      return;
+    }
+    Social.outgoing[peer] = friendEntry(otherId, nick || 'Игрок', 'out', now);
+    toast('Заявка отправлена · ' + (nick || otherId), 'ok');
+    updateSocialBadge();
+    renderFriends();
+    refreshSocial({ silent: true });
+    runFriendSearch($('#friendSearch') ? $('#friendSearch').value : '');
+  }
+
+  async function acceptFriend(otherId) {
+    var me = myKey();
+    var peer = socialKey(otherId);
+    var item = Social.incoming[peer] || Social.outgoing[peer] || { nick: 'Игрок' };
+    var now = Date.now();
+    var ok = await safeWrite('friends/' + me + '/' + peer, friendEntry(otherId, item.nick, 'friends', now)) &&
+      await safeWrite('friends/' + peer + '/' + me, friendEntry(State.user.id, State.user.nick, 'friends', now));
+    if (!ok) {
+      toast('Не получилось принять заявку', 'error');
+      return;
+    }
+    delete Social.incoming[peer];
+    delete Social.outgoing[peer];
+    Social.friends[peer] = friendEntry(otherId, item.nick, 'friends', now);
+    toast('Теперь вы друзья · ' + item.nick, 'ok');
+    updateSocialBadge();
+    renderFriends();
+    refreshSocial({ silent: true });
+  }
+
+  async function dropFriendLink(otherId) {
+    var me = myKey();
+    var peer = socialKey(otherId);
+    await safeWrite('friends/' + me + '/' + peer, null);
+    await safeWrite('friends/' + peer + '/' + me, null);
+    delete Social.friends[peer];
+    delete Social.incoming[peer];
+    delete Social.outgoing[peer];
+    if (Social.thread === peer) {
+      Social.thread = '';
+      Social.messages = [];
+    }
+    Social.armed = '';
+    updateSocialBadge();
+    renderFriends();
+  }
+
+  async function declineFriend(otherId) {
+    await dropFriendLink(otherId);
+    toast('Заявка отклонена');
+    refreshSocial({ silent: true });
+  }
+
+  async function cancelFriend(otherId) {
+    await dropFriendLink(otherId);
+    toast('Заявка отменена');
+    refreshSocial({ silent: true });
+  }
+
+  async function unfriend(otherId) {
+    var peer = socialKey(otherId);
+    if (Social.armed !== peer) {
+      Social.armed = peer;
+      renderFriends();
+      setTimeout(function () {
+        if (Social.armed !== peer) return;
+        Social.armed = '';
+        renderFriends();
+      }, 3500);
+      return;
+    }
+    await dropFriendLink(otherId);
+    toast('Удалён из друзей');
+    refreshSocial({ silent: true });
+  }
+
+  /* ---------- переписка ---------- */
+
+  function dmMessagesHTML() {
+    if (!State.user) return '';
+    if (!Social.messages.length) {
+      return '<li class="dm-empty">Сообщений пока нет. Напиши первым.</li>';
+    }
+    var myId = String(State.user.id);
+    return Social.messages.map(function (msg) {
+      var mine = String(msg.from) === myId;
+      return '<li class="dm-msg' + (mine ? ' dm-msg--mine' : '') + '">' +
+        '<span class="dm-msg-meta">' + esc(mine ? 'ты' : msg.nick) + ' · ' + esc(messageTime(msg.at)) + '</span>' +
+        '<span class="dm-msg-text">' + esc(msg.text) + '</span></li>';
+    }).join('');
+  }
+
+  function scrollDM() {
+    var list = $('#dmList');
+    if (!list) return;
+    try {
+      list.scrollTop = list.scrollHeight;
+    } catch (e) { /* ignore */ }
+  }
+
+  function renderDMMessages() {
+    var list = $('#dmList');
+    if (!list) return;
+    list.innerHTML = dmMessagesHTML();
+    scrollDM();
+  }
+
+  function renderDMPane() {
+    var pane = $('#dmPane');
+    var hint = $('#dmHint');
+    if (!pane) return;
+    var peer = Social.thread;
+    var friend = peer ? Social.friends[peer] : null;
+    if (!peer || !friend) {
+      pane.innerHTML = '';
+      Social.renderedPeer = '';
+      if (hint) hint.hidden = !State.user;
+      return;
+    }
+    if (Social.renderedPeer === peer && $('#dmPanel')) {
+      var sub = $('#dmPanel .friend-sub');
+      if (sub) sub.innerHTML = friendSubHTML(friend);
+      var title = $('#dmPanel .friend-nick');
+      if (title) title.textContent = friendNick(friend);
+      if (hint) hint.hidden = true;
+      return;
+    }
+    Social.renderedPeer = peer;
+    pane.innerHTML = '<div class="dm-panel" id="dmPanel">' +
+      '<div class="dm-head">' +
+      '<span class="avatar avatar--sm">' + esc(initials(friendNick(friend))) + '</span>' +
+      '<div class="friend-row-main"><span class="friend-nick">' + esc(friendNick(friend)) + '</span>' +
+      '<span class="friend-sub">' + friendSubHTML(friend) + '</span></div>' +
+      '<button class="btn btn-sm" type="button" data-act="call" data-peer="' + esc(friend.id) +
+      '" data-nick="' + esc(friend.nick) + '">Звонок</button>' +
+      '<button class="btn btn-sm" type="button" data-act="dm-close" aria-label="Закрыть переписку">✕</button>' +
+      '</div>' +
+      '<ul class="dm-list" id="dmList">' + dmMessagesHTML() + '</ul>' +
+      '<form class="dm-form" id="dmForm" autocomplete="off">' +
+      '<input type="text" id="dmInput" maxlength="' + DM_LIMIT + '" placeholder="Сообщение" aria-label="Сообщение" autocomplete="off" value="' +
+      esc(Social.draft) + '">' +
+      '<button class="btn btn-primary" type="submit">Отправить</button>' +
+      '</form></div>';
+    if (hint) hint.hidden = true;
+    scrollDM();
+  }
+
+  async function loadThread() {
+    if (!State.user || !Social.thread) return;
+    var key = dmThread(State.user.id, Social.thread);
+    var raw = await safeRead('dm/' + key + '/m');
+    var messages = [];
+    Object.keys(raw || {}).forEach(function (id) {
+      var msg = raw[id];
+      if (!msg || typeof msg !== 'object') return;
+      messages.push({
+        id: id,
+        from: String(msg.from || ''),
+        nick: String(msg.nick || 'Игрок'),
+        text: String(msg.text || ''),
+        at: Number(msg.at) || 0
+      });
+    });
+    messages.sort(function (a, b) { return a.at - b.at; });
+    Social.messages = messages.slice(-200);
+    renderDMMessages();
+    if (messages.length) markDMSeen(Social.thread, messages[messages.length - 1].at);
+  }
+
+  function markDMSeen(peer, at) {
+    var key = socialKey(peer);
+    Social.seen[key] = Number(at) || Date.now();
+    LS.set('dmSeen', Social.seen);
+    updateSocialBadge();
+  }
+
+  async function openThread(peerId) {
+    var key = socialKey(peerId);
+    if (!State.user) {
+      requireLogin(null);
+      return;
+    }
+    if (!Social.friends[key]) {
+      toast('Переписка доступна только с друзьями', 'error');
+      return;
+    }
+    Social.thread = key;
+    Social.messages = [];
+    Social.draft = '';
+    renderDMPane();
+    await loadThread();
+    markDMSeen(key);
+    var input = $('#dmInput');
+    if (input && input.focus) {
+      try { input.focus(); } catch (e) { /* ignore */ }
+    }
+  }
+
+  function closeThread() {
+    Social.thread = '';
+    Social.messages = [];
+    Social.draft = '';
+    Social.renderedPeer = '';
+    renderDMPane();
+  }
+
+  async function sendDM(text) {
+    var peer = Social.thread;
+    if (!State.user || !peer) return;
+    var value = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+    if (!value) return;
+    if (value.length > DM_LIMIT) value = value.slice(0, DM_LIMIT);
+    var now = Date.now();
+    if (now - Social.lastSent < 600) {
+      toast('Слишком часто — подожди секунду', 'error');
+      return;
+    }
+    Social.lastSent = now;
+    var key = dmThread(State.user.id, peer);
+    var id = 'm' + now.toString(36) + Math.random().toString(36).slice(2, 6);
+    var msg = { from: String(State.user.id), nick: State.user.nick, text: value, at: now };
+    var ok = await safeWrite('dm/' + key + '/m/' + id, msg);
+    if (!ok) {
+      toast('Сообщение не отправилось', 'error');
+      return;
+    }
+    await safeWrite('dmMeta/' + key, { lastAt: now, lastFrom: String(State.user.id), lastText: value.slice(0, 60) });
+    Social.messages.push({ id: id, from: msg.from, nick: msg.nick, text: msg.text, at: now });
+    Social.draft = '';
+    markDMSeen(peer, now);
+    renderDMMessages();
+    var input = $('#dmInput');
+    if (input) input.value = '';
+  }
+
+  /* ============================================================
+     Звонки: голос, видео, демонстрация экрана
+     ============================================================ */
+
+  var CALL_RING_TTL_MS = 120000;
+
+  var Call = {
+    state: 'idle',
+    peer: '',
+    nick: '',
+    thread: '',
+    kind: 'audio',
+    pc: null,
+    local: null,
+    remote: null,
+    screen: null,
+    camera: null,
+    senders: [],
+    muted: false,
+    cam: false,
+    sharing: false,
+    seen: {},
+    queue: [],
+    applied: false,
+    incomingSdp: '',
+    ringAt: 0,
+    dismissed: {},
+    startedAt: 0,
+    timer: 0
+  };
+
+  function callsSupported() {
+    return typeof window.RTCPeerConnection !== 'undefined' &&
+      !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  }
+
+  function iceServers() {
+    if (Array.isArray(CONFIG.iceServers) && CONFIG.iceServers.length) return CONFIG.iceServers;
+    return VOICE_ICE;
+  }
+
+  function callPeerFromThread(thread) {
+    var uid = myKey();
+    var parts = String(thread || '').split('~');
+    for (var i = 0; i < parts.length; i += 1) {
+      if (parts[i] && parts[i] !== uid) return parts[i];
+    }
+    return '';
+  }
+
+  function stopStream(stream) {
+    if (!stream) return;
+    try {
+      stream.getTracks().forEach(function (track) {
+        try { track.stop(); } catch (e) { /* ignore */ }
+      });
+    } catch (e) { /* ignore */ }
+  }
+
+  async function callMedia(kind) {
+    var constraints = { audio: true, video: kind === 'video' ? { width: 1280, height: 720 } : false };
+    return await navigator.mediaDevices.getUserMedia(constraints);
+  }
+
+  function attachCallVideo(role, stream) {
+    var el = $('#callPanel [data-call="' + role + '"]');
+    if (!el || !stream) return;
+    try { el.srcObject = stream; } catch (e) { /* старые браузеры */ }
+    var played = el.play && el.play();
+    if (played && typeof played.catch === 'function') played.catch(function () { /* автоплей */ });
+    var box = $('#callVideos');
+    if (box) box.hidden = false;
+  }
+
+  function callStatusText() {
+    if (Call.state === 'outgoing') return 'звоним…';
+    if (Call.state === 'incoming') return 'входящий · ' + (Call.kind === 'video' ? 'видео' : 'голос');
+    if (Call.state !== 'active') return '';
+    var sec = Math.max(0, Math.floor((Date.now() - Call.startedAt) / 1000));
+    var mm = Math.floor(sec / 60);
+    var ss = sec % 60;
+    return (Call.muted ? 'микрофон выкл. · ' : '') + mm + ':' + (ss < 10 ? '0' + ss : ss);
+  }
+
+  function updateCallTimer() {
+    var el = $('#callStatus');
+    if (el) el.textContent = callStatusText();
+  }
+
+  function startCallTimer() {
+    stopCallTimer();
+    Call.timer = window.setInterval(updateCallTimer, 1000);
+  }
+
+  function stopCallTimer() {
+    if (Call.timer) {
+      clearInterval(Call.timer);
+      Call.timer = 0;
+    }
+  }
+
+  function callActionsHTML() {
+    if (Call.state === 'incoming') {
+      return '<div class="call-actions">' +
+        '<button class="btn btn-primary" type="button" data-act="call-accept">Принять</button>' +
+        '<button class="btn" type="button" data-act="call-decline">Отклонить</button></div>';
+    }
+    if (Call.state === 'outgoing') {
+      return '<div class="call-actions">' +
+        '<button class="btn" type="button" data-act="call-mute">' + (Call.muted ? 'Включить микрофон' : 'Микрофон') + '</button>' +
+        '<button class="btn btn-danger" type="button" data-act="call-end">Отменить</button></div>' +
+        '<p class="call-note">Звонок соединится, когда друг ответит. Пушей нет — он должен быть на сайте.</p>';
+    }
+    return '<div class="call-actions">' +
+      '<button class="btn" type="button" data-act="call-mute" data-on="' + (Call.muted ? '1' : '0') + '">' +
+      (Call.muted ? 'Микрофон выкл.' : 'Микрофон вкл.') + '</button>' +
+      '<button class="btn" type="button" data-act="call-cam" data-on="' + (Call.cam ? '1' : '0') + '">' +
+      (Call.cam ? 'Камера вкл.' : 'Камера выкл.') + '</button>' +
+      '<button class="btn" type="button" data-act="call-screen" data-on="' + (Call.sharing ? '1' : '0') + '">' +
+      (Call.sharing ? 'Стоп экран' : 'Экран') + '</button>' +
+      '<button class="btn btn-danger" type="button" data-act="call-end">Завершить</button></div>';
+  }
+
+  function renderCall() {
+    var root = $('#callPanel');
+    if (!root) return;
+    if (Call.state === 'idle') {
+      root.hidden = true;
+      root.innerHTML = '';
+      stopCallTimer();
+      return;
+    }
+    root.hidden = false;
+    var showVideo = Call.kind === 'video' || Call.sharing;
+    root.innerHTML = '<div class="call-head"><span class="dot dot--on"></span>' +
+      '<span class="call-nick">' + esc(Call.nick || 'Игрок') + '</span>' +
+      '<span class="call-status" id="callStatus">' + esc(callStatusText()) + '</span></div>' +
+      '<div class="call-videos" id="callVideos"' + (showVideo ? '' : ' hidden') + '>' +
+      '<video data-call="remote" autoplay playsinline></video>' +
+      '<video data-call="local" autoplay playsinline muted></video></div>' +
+      callActionsHTML();
+    if (showVideo) {
+      attachCallVideo('local', Call.local);
+      attachCallVideo('remote', Call.remote);
+    }
+    if (Call.state === 'active') startCallTimer();
+    else stopCallTimer();
+  }
+
+  function resetCall() {
+    stopCallTimer();
+    stopStream(Call.local);
+    stopStream(Call.camera);
+    stopStream(Call.screen);
+    if (Call.pc) {
+      try { Call.pc.close(); } catch (e) { /* ignore */ }
+    }
+    Call.state = 'idle';
+    Call.peer = '';
+    Call.nick = '';
+    Call.thread = '';
+    Call.kind = 'audio';
+    Call.pc = null;
+    Call.local = null;
+    Call.remote = null;
+    Call.screen = null;
+    Call.camera = null;
+    Call.senders = [];
+    Call.muted = false;
+    Call.cam = false;
+    Call.sharing = false;
+    Call.seen = {};
+    Call.queue = [];
+    Call.applied = false;
+    Call.incomingSdp = '';
+    Call.ringAt = 0;
+    Call.startedAt = 0;
+    renderCall();
+  }
+
+  function callWrite(suffix, value) {
+    if (!Call.thread) return Promise.resolve(false);
+    return safeWrite('calls/' + Call.thread + (suffix ? '/' + suffix : ''), value);
+  }
+
+  function callSignalsPath() {
+    return 'calls/' + Call.thread + '/ice/' + myKey() + '/' +
+      'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  function buildCallPeer() {
+    var pc = new window.RTCPeerConnection({ iceServers: iceServers() });
+    Call.pc = pc;
+    Call.senders = [];
+    pc.onicecandidate = function (event) {
+      if (!event || !event.candidate || !Call.thread) return;
+      safeWrite(callSignalsPath(), {
+        from: String(State.user ? State.user.id : ''),
+        at: Date.now(),
+        candidate: {
+          candidate: event.candidate.candidate,
+          sdpMid: event.candidate.sdpMid,
+          sdpMLineIndex: event.candidate.sdpMLineIndex
+        }
+      });
+    };
+    pc.ontrack = function (event) {
+      var stream = (event && event.streams && event.streams[0]) || null;
+      if (!stream && event && event.track && typeof window.MediaStream === 'function') {
+        stream = new window.MediaStream([event.track]);
+      }
+      if (!stream) return;
+      Call.remote = stream;
+      attachCallVideo('remote', stream);
+    };
+    pc.onconnectionstatechange = function () {
+      var state = pc.connectionState;
+      if (state === 'failed' || state === 'closed') {
+        if (Call.state === 'active') toast('Связь прервалась', 'error');
+      }
+    };
+    return pc;
+  }
+
+  function addCallTracks() {
+    if (!Call.pc || !Call.local) return;
+    if (typeof Call.pc.addTrack !== 'function') return;
+    Call.local.getTracks().forEach(function (track) {
+      try {
+        var sender = Call.pc.addTrack(track, Call.local);
+        if (sender) Call.senders.push({ sender: sender, kind: track.kind });
+      } catch (e) { /* ignore */ }
+    });
+  }
+
+  async function flushCallCandidates() {
+    if (!Call.pc || !Call.pc.remoteDescription || !Call.queue.length) return;
+    var queue = Call.queue;
+    Call.queue = [];
+    for (var i = 0; i < queue.length; i += 1) {
+      try { await Call.pc.addIceCandidate(queue[i]); } catch (e) { /* ignore */ }
+    }
+  }
+
+  async function startCall(peerId, nick, kind) {
+    if (!State.user) {
+      requireLogin(null);
+      return;
+    }
+    if (!Social.friends[socialKey(peerId)]) {
+      toast('Звонить можно только друзьям', 'error');
+      return;
+    }
+    if (Call.state !== 'idle') {
+      toast('Звонок уже идёт', 'error');
+      return;
+    }
+    if (!callsSupported()) {
+      toast('Браузер не умеет звонки — нужен Chrome, Edge или Safari', 'error');
+      return;
+    }
+    Call.peer = socialKey(peerId);
+    Call.nick = nick || Social.friends[Call.peer].nick;
+    Call.kind = kind === 'video' ? 'video' : 'audio';
+    Call.thread = dmThread(State.user.id, peerId);
+    Call.muted = false;
+    Call.cam = Call.kind === 'video';
+    try {
+      Call.local = await callMedia(Call.kind);
+    } catch (e) {
+      resetCall();
+      toast('Браузер не дал доступ к микрофону — разреши его в адресе сайта', 'error');
+      return;
+    }
+    await callWrite('', null);
+    buildCallPeer();
+    addCallTracks();
+    Call.state = 'outgoing';
+    Call.startedAt = Date.now();
+    renderCall();
+    try {
+      var offer = await Call.pc.createOffer();
+      await Call.pc.setLocalDescription(offer);
+      await callWrite('offer', {
+        from: String(State.user.id),
+        nick: State.user.nick,
+        kind: Call.kind,
+        sdp: offer.sdp,
+        at: Date.now()
+      });
+      await callWrite('state', { phase: 'ring', from: String(State.user.id), at: Date.now() });
+    } catch (e) {
+      resetCall();
+      toast('Не получилось начать звонок', 'error');
+      return;
+    }
+    toast('Звоним · ' + Call.nick);
+  }
+
+  async function acceptCall() {
+    if (Call.state !== 'incoming') return;
+    if (!callsSupported()) {
+      toast('Браузер не умеет звонки — нужен Chrome, Edge или Safari', 'error');
+      return;
+    }
+    try {
+      Call.local = await callMedia(Call.kind);
+    } catch (e) {
+      toast('Браузер не дал доступ к микрофону — разреши его в адресе сайта', 'error');
+      await declineCall();
+      return;
+    }
+    Call.cam = Call.kind === 'video';
+    buildCallPeer();
+    addCallTracks();
+    try {
+      await Call.pc.setRemoteDescription({ type: 'offer', sdp: Call.incomingSdp || '' });
+      var answer = await Call.pc.createAnswer();
+      await Call.pc.setLocalDescription(answer);
+      await callWrite('answer', { from: String(State.user.id), sdp: answer.sdp, at: Date.now() });
+      await callWrite('state', { phase: 'active', from: String(State.user.id), at: Date.now() });
+    } catch (e) {
+      resetCall();
+      toast('Не получилось принять звонок', 'error');
+      return;
+    }
+    Call.state = 'active';
+    Call.startedAt = Date.now();
+    renderCall();
+    await flushCallCandidates();
+  }
+
+  async function writeCallEnd(reason) {
+    if (!Call.thread || !State.user) return;
+    var thread = Call.thread;
+    var endAt = Date.now();
+    Call.dismissed[thread] = endAt;
+    await callWrite('end', { from: String(State.user.id), reason: reason || 'hangup', at: endAt });
+    await callWrite('state', { phase: 'ended', from: String(State.user.id), at: endAt });
+    setTimeout(function () {
+      safeRead('calls/' + thread).then(function (node) {
+        if (node && node.end && Number(node.end.at) === endAt) safeWrite('calls/' + thread, null);
+      });
+    }, 2500);
+  }
+
+  async function endCall(silent) {
+    if (Call.state === 'idle') return;
+    var wasActive = Call.state === 'active';
+    await writeCallEnd('hangup');
+    resetCall();
+    if (!silent) toast(wasActive ? 'Звонок завершён' : 'Звонок отменён');
+  }
+
+  async function declineCall() {
+    if (Call.state !== 'incoming') return;
+    await writeCallEnd('declined');
+    resetCall();
+    toast('Звонок отклонён');
+  }
+
+  function toggleCallMute() {
+    Call.muted = !Call.muted;
+    if (Call.local) {
+      try {
+        Call.local.getAudioTracks().forEach(function (track) { track.enabled = !Call.muted; });
+      } catch (e) { /* ignore */ }
+    }
+    renderCall();
+  }
+
+  function videoSender() {
+    for (var i = 0; i < Call.senders.length; i += 1) {
+      if (Call.senders[i].kind === 'video') return Call.senders[i].sender;
+    }
+    return null;
+  }
+
+  async function toggleCallCamera() {
+    if (Call.state !== 'active') return;
+    var sender = videoSender();
+    if (Call.cam) {
+      stopStream(Call.camera);
+      Call.camera = null;
+      if (sender && sender.replaceTrack) {
+        try { await sender.replaceTrack(null); } catch (e) { /* ignore */ }
+      }
+      Call.cam = false;
+      renderCall();
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast('Браузер не даёт доступ к камере', 'error');
+      return;
+    }
+    try {
+      Call.camera = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+      var track = Call.camera.getVideoTracks()[0];
+      if (sender && sender.replaceTrack && track) await sender.replaceTrack(track);
+      Call.cam = true;
+      Call.kind = 'video';
+      attachCallVideo('local', Call.local);
+      renderCall();
+    } catch (e) {
+      toast('Камера недоступна — проверь разрешение', 'error');
+    }
+  }
+
+  async function toggleCallScreen() {
+    if (Call.state !== 'active') return;
+    var sender = videoSender();
+    if (Call.sharing) {
+      stopStream(Call.screen);
+      Call.screen = null;
+      if (Call.cam && Call.camera) {
+        var back = Call.camera.getVideoTracks()[0];
+        if (sender && sender.replaceTrack && back) {
+          try { await sender.replaceTrack(back); } catch (e) { /* ignore */ }
+        }
+      } else if (sender && sender.replaceTrack) {
+        try { await sender.replaceTrack(null); } catch (e) { /* ignore */ }
+      }
+      Call.sharing = false;
+      renderCall();
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      toast('Демонстрация экрана не поддерживается — нужен Chrome или Edge на компьютере', 'error');
+      return;
+    }
+    try {
+      Call.screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      var track = Call.screen.getVideoTracks()[0];
+      if (sender && sender.replaceTrack && track) await sender.replaceTrack(track);
+      Call.sharing = true;
+      Call.kind = 'video';
+      renderCall();
+      attachCallVideo('local', Call.screen);
+    } catch (e) {
+      toast('Экран не расшарен — окно выбора закрыли', 'error');
+    }
+  }
+
+  async function applyCallIce(node) {
+    if (!node || !node.ice || !Call.pc) return;
+    var keys = Object.keys(node.ice);
+    for (var i = 0; i < keys.length; i += 1) {
+      var key = keys[i];
+      if (Call.seen[key]) continue;
+      Call.seen[key] = true;
+      var entry = node.ice[key];
+      if (!entry || !entry.candidate) continue;
+      if (String(entry.from) === String(State.user.id)) continue;
+      if (!Call.pc.remoteDescription) {
+        Call.queue.push(entry.candidate);
+        continue;
+      }
+      try { await Call.pc.addIceCandidate(entry.candidate); } catch (e) { /* ignore */ }
+    }
+    await flushCallCandidates();
+  }
+
+  async function handleCallUpdate(node) {
+    if (!Call.thread) return;
+    if (!node) {
+      if (Call.state === 'active' || Call.state === 'outgoing') {
+        resetCall();
+        toast('Звонок завершён', 'error');
+      }
+      return;
+    }
+    if (node.end && String(node.end.from) !== String(State.user.id)) {
+      var wasActive = Call.state === 'active';
+      resetCall();
+      toast(wasActive ? 'Собеседник завершил звонок' : 'Звонок отменён');
+      return;
+    }
+    if (Call.state === 'outgoing' && node.answer && !Call.applied) {
+      Call.applied = true;
+      try {
+        await Call.pc.setRemoteDescription({ type: 'answer', sdp: node.answer.sdp });
+      } catch (e) { /* ignore */ }
+      Call.state = 'active';
+      Call.startedAt = Number(node.answer.at) || Date.now();
+      renderCall();
+    }
+    if (Call.state === 'active') await applyCallIce(node);
+  }
+
+  async function pollCalls() {
+    if (!State.user) return;
+    var root = await safeRead('calls');
+
+    if (Call.state === 'incoming') {
+      var ring = Call.thread && root ? root[Call.thread] : null;
+      var alive = !!(ring && ring.offer && ring.state && ring.state.phase === 'ring' &&
+        !(ring.end && String(ring.end.from) !== String(State.user.id)));
+      var expired = Date.now() - Number(Call.ringAt || 0) > CALL_RING_TTL_MS;
+      if (!alive || expired) {
+        var who = Call.nick;
+        resetCall();
+        toast(who ? 'Звонок от ' + who + ' отменён' : 'Звонок отменён');
+      }
+      return;
+    }
+    if (!root || typeof root !== 'object') {
+      if (Call.state === 'outgoing' && Date.now() - Call.startedAt > CALL_RING_TTL_MS) {
+        resetCall();
+        toast('Никто не ответил', 'error');
+      }
+      return;
+    }
+    if (Call.thread && root[Call.thread]) await handleCallUpdate(root[Call.thread]);
+    if (Call.state !== 'idle') return;
+
+    var uid = myKey();
+    var now = Date.now();
+    var threads = Object.keys(root);
+    for (var i = 0; i < threads.length; i += 1) {
+      var thread = threads[i];
+      if (thread.indexOf(uid) < 0) continue;
+      var node = root[thread];
+      var offer = node && node.offer;
+      var state = node && node.state;
+      if (!offer || !state || state.phase !== 'ring') continue;
+      if (String(offer.from) === String(State.user.id)) continue;
+      if (now - Number(offer.at) > CALL_RING_TTL_MS) continue;
+      var peer = callPeerFromThread(thread);
+      if (!peer || !Social.friends[peer]) continue;
+      if (Call.dismissed[thread] && Number(offer.at) <= Call.dismissed[thread]) continue;
+      Call.state = 'incoming';
+      Call.thread = thread;
+      Call.peer = peer;
+      Call.nick = String(offer.nick || Social.friends[peer].nick || 'Игрок');
+      Call.kind = offer.kind === 'video' ? 'video' : 'audio';
+      Call.incomingSdp = String(offer.sdp || '');
+      Call.ringAt = now;
+      renderCall();
+      toast('Входящий звонок · ' + Call.nick, 'ok');
+      return;
+    }
+  }
+
+  /* ============================================================
      Обработчики событий
      ============================================================ */
 
@@ -4628,6 +6004,51 @@ const CONFIG = {
         break;
       case 'rename':
         run(function () { return openNickModal(); });
+        break;
+      case 'friend-add':
+        run(function () { return sendFriendRequest(el.getAttribute('data-peer') || '', el.getAttribute('data-nick') || ''); });
+        break;
+      case 'friend-accept':
+        run(function () { return acceptFriend(el.getAttribute('data-peer') || ''); });
+        break;
+      case 'friend-decline':
+        run(function () { return declineFriend(el.getAttribute('data-peer') || ''); });
+        break;
+      case 'friend-cancel':
+        run(function () { return cancelFriend(el.getAttribute('data-peer') || ''); });
+        break;
+      case 'unfriend':
+        run(function () { return unfriend(el.getAttribute('data-peer') || ''); });
+        break;
+      case 'dm':
+        run(function () { return openThread(el.getAttribute('data-peer') || ''); });
+        break;
+      case 'dm-close':
+        closeThread();
+        break;
+      case 'call':
+        run(function () {
+          return startCall(el.getAttribute('data-peer') || '', el.getAttribute('data-nick') || '',
+            el.getAttribute('data-kind') || 'audio');
+        });
+        break;
+      case 'call-accept':
+        run(acceptCall);
+        break;
+      case 'call-decline':
+        run(declineCall);
+        break;
+      case 'call-end':
+        run(endCall);
+        break;
+      case 'call-mute':
+        toggleCallMute();
+        break;
+      case 'call-cam':
+        run(toggleCallCamera);
+        break;
+      case 'call-screen':
+        run(toggleCallScreen);
         break;
       case 'overlay-open':
         setTab('rooms', { keepScroll: true });
@@ -4768,6 +6189,10 @@ const CONFIG = {
       } else if (form.id === 'nickForm') {
         event.preventDefault();
         run(submitNickForm);
+      } else if (form.id === 'dmForm') {
+        event.preventDefault();
+        var dmInput = $('#dmInput');
+        run(function () { return sendDM(dmInput ? dmInput.value : ''); });
       }
     });
 
@@ -4780,8 +6205,19 @@ const CONFIG = {
 
     document.addEventListener('input', function (event) {
       var target = event.target;
-      if (!target || target.id !== 'chatInput') return;
-      ChatUI.draft = target.value;
+      if (!target || !target.id) return;
+      if (target.id === 'chatInput') {
+        ChatUI.draft = target.value;
+        return;
+      }
+      if (target.id === 'dmInput') {
+        Social.draft = target.value;
+        return;
+      }
+      if (target.id === 'friendSearch') {
+        clearTimeout(Social.searchTimer);
+        Social.searchTimer = setTimeout(function () { runFriendSearch(target.value); }, 280);
+      }
     });
 
     document.addEventListener('keydown', function (event) {
@@ -4809,6 +6245,8 @@ const CONFIG = {
 
     window.addEventListener('pagehide', function () {
       if (Voice.active) stopVoice(true);
+      if (Call.state !== 'idle') endCall(true);
+      presenceClear();
     });
 
     var tabbar = $('#tabbar');
@@ -4818,7 +6256,7 @@ const CONFIG = {
         if (key !== 'ArrowRight' && key !== 'ArrowLeft' && key !== 'Home' && key !== 'End') return;
         if (!event.target || event.target.getAttribute('data-act') !== 'tab') return;
         event.preventDefault();
-        var order = ['rooms', 'cheats'];
+        var order = ['rooms', 'friends', 'cheats'];
         var index = order.indexOf(Tabs.current);
         if (key === 'ArrowRight') index = (index + 1) % order.length;
         else if (key === 'ArrowLeft') index = (index - 1 + order.length) % order.length;
@@ -4865,10 +6303,13 @@ const CONFIG = {
       toast('Не удалось выполнить действие', 'error');
     });
 
-    initStore().catch(function () {
+    initStore().then(function () {
+      if (State.user) startSocialLoop();
+    }).catch(function () {
       DB.mode = DB.mode === 'cloud' ? 'cloud' : 'local';
       State.loading = false;
       render();
+      if (State.user) startSocialLoop();
     });
   }
 
