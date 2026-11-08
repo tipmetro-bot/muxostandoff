@@ -353,6 +353,33 @@
   }
 
   .card-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; }
+  .card-lobby { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+
+  .badge--public { border-color: var(--accent); color: var(--accent); text-transform: lowercase; }
+  .lobby-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-strong);
+    border-left: 2px solid var(--accent);
+    border-radius: var(--radius);
+    background: var(--panel-2);
+  }
+  .lobby-link {
+    flex: 1 1 180px;
+    min-width: 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lobby-hint { margin: -6px 0 14px; color: var(--muted); font-size: 11px; }
+  .lobby-row .btn { flex: none; }
   .owner { min-width: 0; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .owner b { color: var(--text); font-weight: 600; }
 
@@ -1120,6 +1147,7 @@
         </div>
       </div>
       <div class="style-filters" id="styleFilters"></div>
+      <div class="style-filters" id="accessFilters"></div>
       <div class="grid" id="roomsGrid"></div>
     </section>
 
@@ -1448,6 +1476,15 @@ const CONFIG = {
   var MAPS = ['Sandstone', 'Province', 'Breeze', 'Rust', 'Training', 'Aim Map', 'Любая'];
   var REGIONS = ['EU', 'RU', 'KZ', 'BY', 'UA', 'TR', 'CIS'];
 
+  var LOBBY_HOST = 'link.standoff2.com';
+  var LOBBY_MAX = 320;
+  var ACCESS_LABEL = { code: 'по коду', public: 'hvh public' };
+  var ACCESS_FILTERS = [
+    { key: 'all', label: 'все комнаты' },
+    { key: 'code', label: 'по коду' },
+    { key: 'public', label: 'hvh public' }
+  ];
+
   var FORMAT_FILTERS = [
     { key: 'all', label: 'Все' },
     { key: '1x1', label: '1x1' },
@@ -1477,6 +1514,7 @@ const CONFIG = {
     filter: 'all',
     style: 'all',
     query: '',
+    access: 'all',
     unlocked: {},
     lastChat: {},
     awarded: {},
@@ -1565,6 +1603,29 @@ const CONFIG = {
     return out;
   }
 
+  function parseLobbyLink(value) {
+    var raw = String(value == null ? '' : value).trim();
+    if (!raw || raw.length > LOBBY_MAX) return '';
+    var url = raw.replace(/\s+/g, '');
+    if (!/^[a-z]+:\/\//i.test(url)) url = 'https://' + url;
+    url = url.replace(/^http:\/\//i, 'https://');
+    var match = /^https:\/\/([a-z0-9.-]+)(\/[^\s]*)?$/i.exec(url);
+    if (!match) return '';
+    var host = match[1].toLowerCase().replace(/^www\./, '');
+    if (host !== LOBBY_HOST) return '';
+    var path = match[2] || '';
+    if (!/\/lobby\/join\/[A-Za-z0-9_-]+/i.test(path)) return '';
+    return 'https://' + LOBBY_HOST + path;
+  }
+
+  function lobbyShort(link) {
+    var value = String(link || '');
+    var mark = value.indexOf('/lobby/join/');
+    if (mark < 0) return value;
+    var tail = value.slice(mark + '/lobby/join/'.length);
+    return tail.length > 34 ? tail.slice(0, 16) + '…' + tail.slice(-10) : tail;
+  }
+
   function normalizeRoom(id, raw) {
     if (!raw || typeof raw !== 'object') return null;
     var cap = Number(raw.cap);
@@ -1574,6 +1635,9 @@ const CONFIG = {
     var mode = raw.mode === 'custom' ? 'custom' : (MODE_CAP[raw.mode] ? raw.mode : 'custom');
     var style = STYLE_LABEL[raw.style] ? raw.style : 'rage';
     var ping = (typeof raw.ping === 'number' && isFinite(raw.ping)) ? Math.round(raw.ping) : null;
+    var access = raw.access === 'public' ? 'public' : 'code';
+    var lobby = access === 'public' ? parseLobbyLink(raw.lobby) : '';
+    if (access === 'public' && !lobby) access = 'code';
     return {
       id: String(id),
       name: String(raw.name || 'Без названия').slice(0, 42),
@@ -1583,6 +1647,8 @@ const CONFIG = {
       region: REGIONS.indexOf(raw.region) >= 0 ? raw.region : 'EU',
       ping: ping,
       style: style,
+      access: access,
+      lobby: lobby,
       passHash: typeof raw.passHash === 'string' ? raw.passHash : '',
       ownerId: String(raw.ownerId || ''),
       ownerNick: String(raw.ownerNick || 'Игрок').slice(0, 24),
@@ -1614,6 +1680,8 @@ const CONFIG = {
       region: room.region,
       ping: room.ping,
       style: room.style,
+      access: room.access,
+      lobby: room.lobby,
       passHash: room.passHash,
       ownerId: room.ownerId,
       ownerNick: room.ownerNick,
@@ -2113,7 +2181,8 @@ const CONFIG = {
   function searchText(room) {
     var nicks = playerList(room).map(function (p) { return p.nick; }).join(' ');
     return [room.name, room.code, room.map, room.region, room.ownerNick, room.ownerId, nicks,
-      styleLabel(room.style), room.style || ''].join(' ').toLowerCase();
+      styleLabel(room.style), room.style || '',
+      room.access === 'public' ? 'hvh public по ссылке приглашение' : 'по коду'].join(' ').toLowerCase();
   }
 
   /* ============================================================
@@ -2213,6 +2282,7 @@ const CONFIG = {
     else if (State.filter === 'mine') list = list.filter(isMine);
     else if (State.filter !== 'all') list = list.filter(function (r) { return r.mode === State.filter; });
     if (State.style !== 'all') list = list.filter(function (r) { return r.style === State.style; });
+    if (State.access !== 'all') list = list.filter(function (r) { return (r.access || 'code') === State.access; });
     list.sort(function (a, b) {
       var fa = isFull(a) ? 1 : 0;
       var fb = isFull(b) ? 1 : 0;
@@ -2229,6 +2299,16 @@ const CONFIG = {
       if (Object.prototype.hasOwnProperty.call(counts, r.mode)) counts[r.mode] += 1;
       else counts.custom += 1;
       if (isMine(r)) counts.mine += 1;
+    });
+    return counts;
+  }
+
+  function accessCounts() {
+    var pool = searchedRooms();
+    var counts = { all: pool.length, code: 0, public: 0 };
+    pool.forEach(function (r) {
+      if (r.access === 'public') counts.public += 1;
+      else counts.code += 1;
     });
     return counts;
   }
@@ -2261,6 +2341,15 @@ const CONFIG = {
       });
       st.innerHTML = parts.join('');
     }
+    var ac = $('#accessFilters');
+    if (ac) {
+      var a = accessCounts();
+      ac.innerHTML = ['<span class="filter-label">вход</span>'].concat(ACCESS_FILTERS.map(function (item) {
+        return '<button type="button" class="chip' + (State.access === item.key ? ' is-active' : '') +
+          '" data-act="access" data-key="' + item.key + '">' + esc(item.label) +
+          '<span class="chip-count">' + (a[item.key] || 0) + '</span></button>';
+      })).join('');
+    }
     renderTabsMeta();
   }
 
@@ -2278,6 +2367,7 @@ const CONFIG = {
     var mine = !!(State.user && room.players[State.user.id]);
     var pct = Math.min(100, Math.round((list.length / room.cap) * 100));
     var meta = [modeLabel(room), room.map, room.region];
+    if (room.access === 'public') meta.push('по ссылке');
     if (room.ping != null) meta.push(room.ping + ' мс');
 
     var btnLabel = 'Занять слот';
@@ -2292,9 +2382,15 @@ const CONFIG = {
       btnClass = 'btn btn-sm';
     }
 
+    var isPublic = room.access === 'public';
+    var topRight = isPublic
+      ? '<span class="card-lobby"><span class="badge badge--public">public</span>' +
+        '<button type="button" class="btn btn-sm" data-act="lobby" data-room="' + esc(room.id) + '">В лобби</button></span>'
+      : '<span class="code">' + esc(room.code) + '</span>';
+
     return '<article class="card" data-room-open="' + esc(room.id) + '">' +
       '<div class="card-top"><span class="badges">' + badgeHTML(room.style) + statusBadgeHTML(room) + '</span>' +
-      '<span class="code">' + esc(room.code) + '</span></div>' +
+      topRight + '</div>' +
       '<h3 class="card-title">' + esc(room.name) + '</h3>' +
       '<div class="card-meta">' + meta.map(function (m) { return '<span>' + esc(m) + '</span>'; }).join('') + '</div>' +
       '<div class="fill"><span style="width:' + pct + '%"></span></div>' +
@@ -3107,12 +3203,26 @@ const CONFIG = {
     var full = list.length >= room.cap;
     var pct = Math.min(100, Math.round((list.length / room.cap) * 100));
 
+    var isPublic = room.access === 'public';
     var subtitle = badgeHTML(room.style) + '<span class="code">' + esc(room.code) + '</span>' +
+      (isPublic ? '<span class="badge badge--public">hvh public</span>' : '') +
       (room.passHash ? '<span class="muted">пароль</span>' : '');
     var head = modalHead(room.name, subtitle);
 
     var codeRow = '<div class="code-row"><span class="code">' + esc(room.code) + '</span>' +
-      '<button type="button" class="btn btn-sm" data-act="copy" data-code="' + esc(room.code) + '">Скопировать</button></div>';
+      '<button type="button" class="btn btn-sm" data-act="copy" data-code="' + esc(room.code) + '">Скопировать</button>' +
+      '<button type="button" class="btn btn-sm" data-act="copy-invite" data-room="' + esc(room.id) + '">Пригласить</button></div>';
+
+    if (isPublic) {
+      codeRow += '<div class="lobby-row">' +
+        '<span class="badge badge--public">public</span>' +
+        '<span class="lobby-link" title="' + esc(room.lobby) + '">' + esc(lobbyShort(room.lobby)) + '</span>' +
+        '<button type="button" class="btn btn-sm btn-primary" data-act="lobby" data-room="' + esc(room.id) + '">Открыть лобби</button>' +
+        '<button type="button" class="btn btn-sm" data-act="copy-lobby" data-room="' + esc(room.id) + '">Скопировать ссылку</button>' +
+        '</div>' +
+        '<p class="lobby-hint">HVH Public: ссылка открывает лобби прямо в Standoff 2. Ссылка одноразовая — ' +
+        'если игра её не приняла, хост создаёт лобби заново и меняет ссылку в комнате.</p>';
+    }
 
     var meta = '<dl class="meta">' +
       metaRow('Формат', modeLabel(room)) +
@@ -3478,12 +3588,14 @@ const CONFIG = {
     toast('Комната удалена', 'ok');
   }
 
-  async function copyCode(code) {
-    if (!code) return;
+  async function copyText(value, okMessage, failMessage) {
+    var text = String(value == null ? '' : value);
+    if (!text) return;
+    var okText = okMessage || 'Скопировано';
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(code);
-        toast('Код скопирован', 'ok');
+        await navigator.clipboard.writeText(text);
+        toast(okText, 'ok');
         return;
       }
     } catch (e) {
@@ -3491,7 +3603,7 @@ const CONFIG = {
     }
     try {
       var area = document.createElement('textarea');
-      area.value = code;
+      area.value = text;
       area.setAttribute('readonly', 'readonly');
       area.style.position = 'fixed';
       area.style.left = '-9999px';
@@ -3500,13 +3612,68 @@ const CONFIG = {
       var ok = document.execCommand && document.execCommand('copy');
       document.body.removeChild(area);
       if (ok) {
-        toast('Код скопирован', 'ok');
+        toast(okText, 'ok');
         return;
       }
     } catch (e) {
       /* ниже покажем ошибку */
     }
-    toast('Не удалось скопировать — выдели код вручную', 'error');
+    toast(failMessage || 'Не удалось скопировать — выдели вручную', 'error');
+  }
+
+  async function copyCode(code) {
+    await copyText(code, 'Код скопирован', 'Не удалось скопировать — выдели код вручную');
+  }
+
+  function roomLobby(roomId) {
+    var room = State.rooms[roomId];
+    var link = room ? parseLobbyLink(room.lobby) : '';
+    if (!link) {
+      toast('У этой комнаты нет ссылки на лобби', 'error');
+      return '';
+    }
+    return link;
+  }
+
+  function openLobby(roomId) {
+    var link = roomLobby(roomId);
+    if (!link) return;
+    var win = null;
+    try {
+      win = window.open(link, '_blank', 'noopener');
+    } catch (e) {
+      win = null;
+    }
+    if (!win) toast('Ссылка на лобби: ' + link);
+  }
+
+  function inviteText(room) {
+    if (!room) return '';
+    var site = String(window.location.origin || '').replace(/\/$/, '') +
+      String(window.location.pathname || '/').replace(/index\.html$/, '');
+    var lines = ['HVH · ' + room.name, modeLabel(room) + ' · ' + room.map + ' · ' + room.region];
+    if (room.access === 'public') {
+      lines.push('вход по ссылке:');
+      if (room.lobby) lines.push(room.lobby);
+      lines.push('код комнаты: ' + room.code);
+    } else {
+      lines.push('код комнаты: ' + room.code);
+    }
+    lines.push('стиль: ' + styleLabel(room.style));
+    lines.push(site);
+    return lines.join('\n');
+  }
+
+  async function copyInvite(roomId) {
+    var text = inviteText(State.rooms[roomId]);
+    if (!text) return;
+    await copyText(text, 'Приглашение скопировано — отправь другу', 'Не удалось скопировать приглашение');
+  }
+
+  async function copyLobby(roomId) {
+    var link = roomLobby(roomId);
+    if (!link) return;
+    await copyText(link, 'Ссылка на лобби скопирована', 'Не удалось скопировать — выдели ссылку вручную');
   }
 
   /* ============================================================
@@ -3551,6 +3718,10 @@ const CONFIG = {
     var form = '<form id="roomForm" class="form" novalidate' + (isEdit ? ' data-room-id="' + esc(room.id) + '"' : '') + '>' +
       '<label class="field"><span>Название</span>' +
       '<input id="fName" maxlength="42" autocomplete="off" placeholder="до 42 символов" value="' + esc(room ? room.name : '') + '"></label>' +
+      '<p class="hint" id="accessHint">' + (room && room.access === 'public'
+        ? 'HVH Public: в комнату заходят по ссылке на лобби — кидай её друзьям.'
+        : 'По коду: игроки находят комнату на сайте и заходят по коду ' +
+          esc(room ? room.code : 'MX-XXXX') + '.') + '</p>' +
       '<div class="row">' +
       '<label class="field"><span>Формат</span><select id="fMode">' +
       selectOptions(['1x1', '2x2', '3x3', '4x4', '5x5', 'custom'], modeValue, function (value) {
@@ -3571,6 +3742,15 @@ const CONFIG = {
       '<label class="field"><span>Пинг, мс (необязательно)</span>' +
       '<input id="fPing" type="number" min="0" max="300" step="1" placeholder="—" value="' + esc(room && room.ping != null ? room.ping : '') + '"></label>' +
       '</div>' +
+      '<label class="field"><span>Вход в комнату</span><select id="fAccess">' +
+      selectOptions(['code', 'public'], room ? (room.access || 'code') : 'code', function (value) {
+        return value === 'public' ? 'HVH Public · по ссылке из Standoff 2' : 'по коду комнаты';
+      }) + '</select></label>' +
+      '<label class="field" id="lobbyWrap"' + (room && room.access === 'public' ? '' : ' hidden') +
+      '><span>Ссылка на лобби Standoff 2</span>' +
+      '<input id="fLobby" type="url" inputmode="url" autocomplete="off" maxlength="' + LOBBY_MAX +
+      '" placeholder="https://link.standoff2.com/ru/lobby/join/…" value="' + esc(room ? room.lobby : '') + '">' +
+      '<span class="hint">Из игры: «Друзья» → лобби → «Поделиться» → скопировать ссылку.</span></label>' +
       '<label class="field"><span>Пароль комнаты (необязательно)</span>' +
       '<input id="fPass" type="text" autocomplete="off" maxlength="32" placeholder="' +
       (isEdit ? 'оставь пустым, чтобы не менять' : 'без пароля — комната открыта') + '"></label>' +
@@ -3581,6 +3761,26 @@ const CONFIG = {
       '</form>';
 
     openModal('room-form', room ? room.id : null, head + form);
+  }
+
+  function toggleLobbyField() {
+    var access = $('#fAccess');
+    var wrap = $('#lobbyWrap');
+    var hint = $('#accessHint');
+    if (!access || !wrap) return;
+    var isPublic = access.value === 'public';
+    wrap.hidden = !isPublic;
+    if (hint) {
+      hint.textContent = isPublic
+        ? 'HVH Public: в комнату заходят по ссылке на лобби — кидай её друзьям.'
+        : 'По коду: игроки находят комнату на сайте и заходят по коду комнаты.';
+    }
+    if (isPublic) {
+      var input = $('#fLobby');
+      if (input && input.focus) {
+        try { input.focus(); } catch (e) { /* ignore */ }
+      }
+    }
   }
 
   function toggleSlotsField() {
@@ -3683,6 +3883,21 @@ const CONFIG = {
       ping = Math.round(pingNum);
     }
 
+    var accessEl = $('#fAccess');
+    var access = accessEl && accessEl.value === 'public' ? 'public' : 'code';
+    var lobbyEl = $('#fLobby');
+    var lobby = '';
+    if (access === 'public') {
+      lobby = parseLobbyLink(lobbyEl ? lobbyEl.value : '');
+      if (!lobby) {
+        var badLink = 'Нужна ссылка на лобби Standoff 2 вида https://link.standoff2.com/…/lobby/join/…';
+        setError('#fErr', badLink);
+        fieldError(badLink);
+        if (lobbyEl) lobbyEl.focus();
+        return;
+      }
+    }
+
     var passEl = $('#fPass');
     var pass = passEl ? passEl.value : '';
     var dropEl = $('#fDropPass');
@@ -3702,6 +3917,8 @@ const CONFIG = {
         region: region,
         ping: ping,
         style: style,
+        access: access,
+        lobby: lobby,
         passHash: passHashValue
       };
       await patchRoom(existing.id, patch);
@@ -3724,6 +3941,8 @@ const CONFIG = {
       region: region,
       ping: ping,
       style: style,
+      access: access,
+      lobby: lobby,
       passHash: pass ? passHash(pass, code) : '',
       ownerId: State.user.id,
       ownerNick: State.user.nick,
@@ -6345,6 +6564,11 @@ const CONFIG = {
         renderFilters();
         renderGrid();
         break;
+      case 'access':
+        State.access = el.getAttribute('data-key') || 'all';
+        renderFilters();
+        renderGrid();
+        break;
       case 'reset':
         State.filter = 'all';
         State.style = 'all';
@@ -6404,6 +6628,15 @@ const CONFIG = {
         break;
       case 'copy':
         run(function () { return copyCode(el.getAttribute('data-code') || ''); });
+        break;
+      case 'lobby':
+        openLobby(roomId);
+        break;
+      case 'copy-lobby':
+        run(function () { return copyLobby(roomId); });
+        break;
+      case 'copy-invite':
+        run(function () { return copyInvite(roomId); });
         break;
       default:
         break;
@@ -6468,6 +6701,7 @@ const CONFIG = {
       var target = event.target;
       if (!target) return;
       if (target.id === 'fMode') toggleSlotsField();
+      if (target.id === 'fAccess') toggleLobbyField();
       if (target.id === 'viewMotion') setMotion(target.checked);
     });
 
